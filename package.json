@@ -94,5 +94,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "overrides": {
+    "axios": "1.14.0"
   }
 }
