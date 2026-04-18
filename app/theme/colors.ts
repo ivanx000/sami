@@ -1,85 +1,60 @@
 const palette = {
   neutral100: "#FFFFFF",
-  neutral200: "#F4F2F1",
-  neutral300: "#D7CEC9",
-  neutral400: "#B6ACA6",
-  neutral500: "#978F8A",
-  neutral600: "#564E4A",
-  neutral700: "#3C3836",
-  neutral800: "#191015",
-  neutral900: "#000000",
+  neutral200: "#F5F5F5",
+  neutral300: "#E0E0E0",
+  neutral400: "#9E9E9E",
+  neutral500: "#616161",
+  neutral600: "#424242",
+  neutral700: "#2C2C2C",
+  neutral800: "#1E1E1E",
+  neutral900: "#121212",
 
-  primary100: "#F4E0D9",
-  primary200: "#E8C1B4",
-  primary300: "#DDA28E",
-  primary400: "#D28468",
-  primary500: "#C76542",
-  primary600: "#A54F31",
+  // Goal accent colors — each goal gets one
+  goalTeal: "#00C9A7",
+  goalPurple: "#8B5CF6",
+  goalCoral: "#FF6B6B",
+  goalOrange: "#FF9F43",
+  goalBlue: "#4ECDC4",
+  goalGreen: "#6BCB77",
+  goalPink: "#FF85A1",
+  goalYellow: "#FFD93D",
 
-  secondary100: "#DCDDE9",
-  secondary200: "#BCC0D6",
-  secondary300: "#9196B9",
-  secondary400: "#626894",
+  // Legacy palette keys kept for built-in Toggle components
   secondary500: "#41476E",
-
-  accent100: "#FFEED4",
-  accent200: "#FFE1B2",
-  accent300: "#FDD495",
-  accent400: "#FBC878",
-  accent500: "#FFBB50",
+  accent100: "#2C2C2C",
 
   angry100: "#F2D6CD",
   angry500: "#C03403",
 
-  overlay20: "rgba(25, 16, 21, 0.2)",
-  overlay50: "rgba(25, 16, 21, 0.5)",
+  overlay20: "rgba(0, 0, 0, 0.2)",
+  overlay50: "rgba(0, 0, 0, 0.5)",
 } as const
 
+export const GOAL_ACCENT_COLORS = [
+  palette.goalTeal,
+  palette.goalPurple,
+  palette.goalCoral,
+  palette.goalOrange,
+  palette.goalBlue,
+  palette.goalGreen,
+  palette.goalPink,
+  palette.goalYellow,
+] as const
+
+export type GoalAccentColor = (typeof GOAL_ACCENT_COLORS)[number]
+
 export const colors = {
-  /**
-   * The palette is available to use, but prefer using the name.
-   * This is only included for rare, one-off cases. Try to use
-   * semantic names as much as possible.
-   */
   palette,
-  /**
-   * A helper for making something see-thru.
-   */
   transparent: "rgba(0, 0, 0, 0)",
-  /**
-   * The default text color in many components.
-   */
-  text: palette.neutral800,
-  /**
-   * Secondary text information.
-   */
-  textDim: palette.neutral600,
-  /**
-   * The default color of the screen background.
-   */
-  background: palette.neutral200,
-  /**
-   * The default border color.
-   */
-  border: palette.neutral400,
-  /**
-   * The main tinting color.
-   */
-  tint: palette.primary500,
-  /**
-   * The inactive tinting color.
-   */
-  tintInactive: palette.neutral300,
-  /**
-   * A subtle color used for lines.
-   */
-  separator: palette.neutral300,
-  /**
-   * Error messages.
-   */
+  text: palette.neutral100,
+  textDim: palette.neutral400,
+  background: palette.neutral900,
+  card: palette.neutral800,
+  cardElevated: palette.neutral700,
+  border: palette.neutral700,
+  tint: palette.goalTeal,
+  tintInactive: palette.neutral600,
+  separator: palette.neutral700,
   error: palette.angry500,
-  /**
-   * Error Background.
-   */
   errorBackground: palette.angry100,
 } as const
