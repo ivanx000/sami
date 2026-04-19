@@ -1,5 +1,4 @@
 import { ComponentProps } from "react"
-import { BottomTabScreenProps } from "@react-navigation/bottom-tabs"
 import {
   CompositeScreenProps,
   NavigationContainer,
@@ -7,31 +6,19 @@ import {
 } from "@react-navigation/native"
 import { NativeStackScreenProps } from "@react-navigation/native-stack"
 
-export type MainTabParamList = {
-  Goals: undefined
-  Insights: undefined
-}
-
 export type MainStackParamList = {
-  GoalsList: undefined
-  GoalDetail: { goalId: string }
-  FocusSession: { goalId: string; plannedDuration: number }
-  Reflection: { goalId: string }
+  AppsList: undefined
+  AppDetail: { appId: string }
 }
 
 export type AppStackParamList = {
   Login: undefined
-  Main: NavigatorScreenParams<MainTabParamList>
+  Main: NavigatorScreenParams<MainStackParamList>
 }
 
 export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStackScreenProps<
   AppStackParamList,
   T
->
-
-export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, T>,
-  AppStackScreenProps<keyof AppStackParamList>
 >
 
 export type MainStackScreenProps<T extends keyof MainStackParamList> = NativeStackScreenProps<

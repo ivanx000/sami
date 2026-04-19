@@ -1,88 +1,300 @@
-import { Alert, FlatList, TouchableOpacity, View, ViewStyle, TextStyle } from "react-native"
+import { useState } from "react"
+import {
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+  TextStyle,
+} from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { format } from "date-fns"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { useGoals } from "@/context/GoalContext"
-import { useSessions } from "@/context/SessionContext"
-import type { FocusSession } from "@/models/types"
+import { useAppBlock } from "@/context/AppBlockContext"
+import type { TimeFrame } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
 import type { MainStackScreenProps } from "@/navigators/navigationTypes"
 
-const DURATION_PRESETS = [
-  { label: "25 min", value: 25 },
-  { label: "50 min", value: 50 },
-  { label: "90 min", value: 90 },
-]
+const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
-function SessionRow({ session, accentColor }: { session: FocusSession; accentColor: string }) {
-  const { theme: { colors } } = useAppTheme()
-  const date = format(new Date(session.startedAt), "MMM d")
-  const dots = Array.from({ length: 5 }, (_, i) => i < session.focusScore)
+function formatTime(time: string): string {
+  const [h, m] = time.split(":").map(Number)
+  const ampm = h >= 12 ? "PM" : "AM"
+  const hour = h % 12 === 0 ? 12 : h % 12
+  return `${hour}:${String(m).padStart(2, "0")} ${ampm}`
+}
+
+function formatDays(days: number[]): string {
+  const sorted = [...days].sort((a, b) => a - b)
+  if (sorted.length === 7) return "Every day"
+  if (JSON.stringify(sorted) === JSON.stringify([1, 2, 3, 4, 5])) return "Weekdays"
+  if (JSON.stringify(sorted) === JSON.stringify([0, 6])) return "Weekends"
+  return sorted.map((d) => DAY_LABELS[d]).join(" · ")
+}
+
+function validateTime(t: string): boolean {
+  if (!/^\d{1,2}:\d{2}$/.test(t)) return false
+  const [h, m] = t.split(":").map(Number)
+  return h >= 0 && h <= 23 && m >= 0 && m <= 59
+}
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number)
+  return h * 60 + m
+}
+
+function hasOverlap(
+  existing: TimeFrame[],
+  newStart: string,
+  newEnd: string,
+  newDays: number[],
+  excludeId?: string,
+): boolean {
+  const ns = timeToMinutes(newStart)
+  const ne = timeToMinutes(newEnd)
+  return existing
+    .filter((tf) => tf.id !== excludeId)
+    .some((tf) => {
+      const sharedDay = tf.days.some((d) => newDays.includes(d))
+      if (!sharedDay) return false
+      const ts = timeToMinutes(tf.startTime)
+      const te = timeToMinutes(tf.endTime)
+      return ns < te && ts < ne
+    })
+}
+
+function TimeFrameRow({
+  tf,
+  accentColor,
+  onDelete,
+}: {
+  tf: TimeFrame
+  accentColor: string
+  onDelete: () => void
+}) {
+  const {
+    theme: { colors },
+  } = useAppTheme()
 
   return (
-    <View style={[$sessionRow, { borderLeftColor: accentColor, backgroundColor: colors.card }]}>
-      <View style={$sessionMeta}>
-        <Text style={[$sessionDate, { color: colors.textDim }]}>{date}</Text>
-        <Text style={[$sessionDuration, { color: colors.text }]}>
-          {session.actualDuration}m
+    <View style={[$tfRow, { backgroundColor: colors.card }]}>
+      <View style={[$tfAccent, { backgroundColor: accentColor }]} />
+      <View style={$tfContent}>
+        <Text style={[$tfDays, { color: colors.text }]}>{formatDays(tf.days)}</Text>
+        <Text style={[$tfTime, { color: colors.textDim }]}>
+          {formatTime(tf.startTime)} – {formatTime(tf.endTime)}
         </Text>
-        <View style={$focusDots}>
-          {dots.map((filled, i) => (
-            <View
-              key={i}
-              style={[$focusDot, { backgroundColor: filled ? accentColor : colors.cardElevated }]}
-            />
-          ))}
-        </View>
       </View>
-      {session.reflection ? (
-        <Text style={[$sessionReflection, { color: colors.textDim }]} numberOfLines={2}>
-          {session.reflection}
-        </Text>
-      ) : null}
+      <TouchableOpacity onPress={onDelete} hitSlop={8}>
+        <Text style={[$tfDeleteText, { color: colors.textDim }]}>✕</Text>
+      </TouchableOpacity>
     </View>
   )
 }
 
-export function GoalDetailScreen({ route, navigation }: MainStackScreenProps<"GoalDetail">) {
-  const { goalId } = route.params
-  const { getGoal, archiveGoal } = useGoals()
-  const { getSessionsForGoal } = useSessions()
-  const { theme: { colors, spacing } } = useAppTheme()
+function AddTimeFrameModal({
+  visible,
+  onClose,
+  onAdd,
+  existingFrames,
+  accentColor,
+}: {
+  visible: boolean
+  onClose: () => void
+  onAdd: (tf: Omit<TimeFrame, "id">) => void
+  existingFrames: TimeFrame[]
+  accentColor: string
+}) {
+  const {
+    theme: { colors },
+  } = useAppTheme()
+  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5])
+  const [startTime, setStartTime] = useState("09:00")
+  const [endTime, setEndTime] = useState("17:00")
+  const [error, setError] = useState("")
+
+  const toggleDay = (day: number) => {
+    setSelectedDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]))
+    setError("")
+  }
+
+  const handleAdd = () => {
+    if (selectedDays.length === 0) {
+      setError("Select at least one day.")
+      return
+    }
+    if (!validateTime(startTime)) {
+      setError("Invalid start time. Use HH:MM (e.g. 09:00).")
+      return
+    }
+    if (!validateTime(endTime)) {
+      setError("Invalid end time. Use HH:MM (e.g. 17:00).")
+      return
+    }
+    if (timeToMinutes(startTime) >= timeToMinutes(endTime)) {
+      setError("End time must be after start time.")
+      return
+    }
+    if (hasOverlap(existingFrames, startTime, endTime, selectedDays)) {
+      setError("This overlaps with an existing time frame.")
+      return
+    }
+    onAdd({ startTime, endTime, days: selectedDays })
+    reset()
+    onClose()
+  }
+
+  const reset = () => {
+    setSelectedDays([1, 2, 3, 4, 5])
+    setStartTime("09:00")
+    setEndTime("17:00")
+    setError("")
+  }
+
+  const handleClose = () => {
+    reset()
+    onClose()
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={$modalOverlay}
+      >
+        <View style={[$modalSheet, { backgroundColor: colors.card }]}>
+          <View style={[$modalHandle, { backgroundColor: colors.border }]} />
+          <Text style={[$modalTitle, { color: colors.text }]}>Add Time Frame</Text>
+
+          <Text style={[$tfInputLabel, { color: colors.textDim }]}>Days</Text>
+          <View style={$dayRow}>
+            {DAY_LABELS.map((label, i) => {
+              const selected = selectedDays.includes(i)
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={[
+                    $dayChip,
+                    {
+                      backgroundColor: selected ? accentColor : colors.cardElevated,
+                      borderColor: selected ? accentColor : colors.border,
+                    },
+                  ]}
+                  onPress={() => toggleDay(i)}
+                >
+                  <Text style={[$dayChipText, { color: selected ? "#000" : colors.textDim }]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+
+          <View style={$timeRow}>
+            <View style={$timeField}>
+              <Text style={[$tfInputLabel, { color: colors.textDim }]}>Start</Text>
+              <TextInput
+                style={[
+                  $timeInput,
+                  {
+                    backgroundColor: colors.cardElevated,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
+                value={startTime}
+                onChangeText={(t) => {
+                  setStartTime(t)
+                  setError("")
+                }}
+                placeholder="09:00"
+                placeholderTextColor={colors.textDim}
+                keyboardType="numbers-and-punctuation"
+                returnKeyType="next"
+              />
+            </View>
+            <Text style={[$timeSep, { color: colors.textDim }]}>–</Text>
+            <View style={$timeField}>
+              <Text style={[$tfInputLabel, { color: colors.textDim }]}>End</Text>
+              <TextInput
+                style={[
+                  $timeInput,
+                  {
+                    backgroundColor: colors.cardElevated,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
+                value={endTime}
+                onChangeText={(t) => {
+                  setEndTime(t)
+                  setError("")
+                }}
+                placeholder="17:00"
+                placeholderTextColor={colors.textDim}
+                keyboardType="numbers-and-punctuation"
+                returnKeyType="done"
+                onSubmitEditing={handleAdd}
+              />
+            </View>
+          </View>
+
+          {error ? <Text style={[$errorText, { color: "#FF6B6B" }]}>{error}</Text> : null}
+
+          <View style={$modalActions}>
+            <TouchableOpacity
+              style={[$modalBtn, { backgroundColor: colors.cardElevated }]}
+              onPress={handleClose}
+            >
+              <Text style={{ color: colors.textDim }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[$modalBtn, { backgroundColor: accentColor }]}
+              onPress={handleAdd}
+            >
+              <Text style={{ color: "#000", fontWeight: "700" }}>Add</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  )
+}
+
+export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"AppDetail">) {
+  const { appId } = route.params
+  const { getApp, updateApp, deleteApp, addTimeFrame, removeTimeFrame } = useAppBlock()
+  const {
+    theme: { colors, spacing },
+  } = useAppTheme()
   const insets = useSafeAreaInsets()
+  const [showAddModal, setShowAddModal] = useState(false)
 
-  const goal = getGoal(goalId)
-  const sessions = getSessionsForGoal(goalId).slice().reverse()
+  const app = getApp(appId)
 
-  if (!goal) {
+  if (!app) {
     navigation.goBack()
     return null
   }
 
-  const totalMinutes = sessions.reduce((sum, s) => sum + s.actualDuration, 0)
-  const avgFocus =
-    sessions.length > 0
-      ? (sessions.reduce((sum, s) => sum + s.focusScore, 0) / sessions.length).toFixed(1)
-      : "—"
-
-  const handleArchive = () => {
-    Alert.alert("Archive goal?", "You can find it in insights.", [
+  const handleDelete = () => {
+    Alert.alert("Remove app?", `Stop blocking ${app.name}?`, [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Archive",
+        text: "Remove",
         style: "destructive",
         onPress: () => {
-          archiveGoal(goalId)
+          deleteApp(appId)
           navigation.goBack()
         },
       },
     ])
-  }
-
-  const startSession = (duration: number) => {
-    navigation.navigate("FocusSession", { goalId, plannedDuration: duration })
   }
 
   return (
@@ -91,73 +303,95 @@ export function GoalDetailScreen({ route, navigation }: MainStackScreenProps<"Go
         <TouchableOpacity onPress={() => navigation.goBack()} style={$backBtn}>
           <Text style={[$backArrow, { color: colors.tint }]}>←</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleArchive}>
-          <Text style={[$archiveText, { color: colors.textDim }]}>Archive</Text>
+        <TouchableOpacity onPress={handleDelete}>
+          <Text style={[$removeText, { color: "#FF6B6B" }]}>Remove</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={[$goalHero, { paddingHorizontal: spacing.md }]}>
-        <View style={[$accentLine, { backgroundColor: goal.accentColor }]} />
-        <View style={$heroText}>
-          <Text style={[$goalName, { color: colors.text }]}>{goal.name}</Text>
-          <Text style={[$goalWhy, { color: colors.textDim }]}>{goal.why}</Text>
-        </View>
+      <View style={[$appHero, { paddingHorizontal: spacing.md }]}>
+        <View style={[$accentLine, { backgroundColor: app.accentColor }]} />
+        <Text style={[$appName, { color: colors.text }]}>{app.name}</Text>
       </View>
 
-      <View style={[$statsRow, { paddingHorizontal: spacing.md }]}>
-        <View style={[$statCard, { backgroundColor: colors.card }]}>
-          <Text style={[$statValue, { color: goal.accentColor }]}>{sessions.length}</Text>
-          <Text style={[$statLabel, { color: colors.textDim }]}>Sessions</Text>
+      <View
+        style={[$foreverRow, { marginHorizontal: spacing.md, backgroundColor: colors.card }]}
+      >
+        <View style={$foreverLeft}>
+          <Text style={[$foreverLabel, { color: colors.text }]}>Block Forever</Text>
+          <Text style={[$foreverSub, { color: colors.textDim }]}>
+            {app.blockedForever
+              ? "Blocked until you turn this off"
+              : "Always on, no schedule needed"}
+          </Text>
         </View>
-        <View style={[$statCard, { backgroundColor: colors.card }]}>
-          <Text style={[$statValue, { color: goal.accentColor }]}>{totalMinutes}m</Text>
-          <Text style={[$statLabel, { color: colors.textDim }]}>Total</Text>
-        </View>
-        <View style={[$statCard, { backgroundColor: colors.card }]}>
-          <Text style={[$statValue, { color: goal.accentColor }]}>{avgFocus}</Text>
-          <Text style={[$statLabel, { color: colors.textDim }]}>Avg focus</Text>
-        </View>
+        <Switch
+          value={app.blockedForever}
+          onValueChange={(v) => updateApp(appId, { blockedForever: v })}
+          trackColor={{ false: colors.cardElevated, true: "#FF6B6B" }}
+          thumbColor="#fff"
+        />
       </View>
 
-      <View style={[$durationRow, { paddingHorizontal: spacing.md }]}>
-        {DURATION_PRESETS.map((preset) => (
-          <TouchableOpacity
-            key={preset.value}
-            style={[$durationBtn, { backgroundColor: goal.accentColor }]}
-            onPress={() => startSession(preset.value)}
-            activeOpacity={0.8}
-          >
-            <Text style={$durationBtnText}>{preset.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {sessions.length > 0 ? (
+      {!app.blockedForever && (
         <>
-          <Text style={[$sectionTitle, { color: colors.textDim, paddingHorizontal: spacing.md }]}>
-            Sessions
+          <Text
+            style={[$sectionTitle, { color: colors.textDim, paddingHorizontal: spacing.md }]}
+          >
+            SCHEDULE
           </Text>
           <FlatList
-            data={sessions}
-            keyExtractor={(s) => s.id}
+            data={app.timeFrames}
+            keyExtractor={(tf) => tf.id}
             renderItem={({ item }) => (
-              <SessionRow session={item} accentColor={goal.accentColor} />
+              <TimeFrameRow
+                tf={item}
+                accentColor={app.accentColor}
+                onDelete={() => removeTimeFrame(appId, item.id)}
+              />
             )}
-            contentContainerStyle={{
-              paddingHorizontal: spacing.md,
-              paddingBottom: insets.bottom + 80,
-              gap: 8,
-            }}
+            contentContainerStyle={[
+              $listContent,
+              { paddingHorizontal: spacing.md, paddingBottom: insets.bottom + 24 },
+            ]}
             showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <Text style={[$emptySchedule, { color: colors.textDim }]}>
+                No time frames set yet
+              </Text>
+            }
+            ListFooterComponent={
+              <TouchableOpacity
+                style={[
+                  $addTfBtn,
+                  {
+                    borderColor: app.accentColor + "66",
+                    backgroundColor: app.accentColor + "18",
+                  },
+                ]}
+                onPress={() => setShowAddModal(true)}
+              >
+                <Text style={[$addTfText, { color: app.accentColor }]}>+ Add Time Frame</Text>
+              </TouchableOpacity>
+            }
           />
         </>
-      ) : (
-        <View style={$noSessions}>
-          <Text style={[$noSessionsText, { color: colors.textDim }]}>
-            Start your first session above
+      )}
+
+      {app.blockedForever && (
+        <View style={$foreverMessage}>
+          <Text style={[$foreverMessageText, { color: colors.textDim }]}>
+            {"This app is blocked at all times.\nToggle off to set a schedule instead."}
           </Text>
         </View>
       )}
+
+      <AddTimeFrameModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={(tf) => addTimeFrame(appId, tf)}
+        existingFrames={app.timeFrames}
+        accentColor={app.accentColor}
+      />
     </Screen>
   )
 }
@@ -178,12 +412,13 @@ const $backArrow: TextStyle = {
   fontWeight: "600",
 }
 
-const $archiveText: TextStyle = {
+const $removeText: TextStyle = {
   fontSize: 14,
 }
 
-const $goalHero: ViewStyle = {
+const $appHero: ViewStyle = {
   flexDirection: "row",
+  alignItems: "center",
   gap: 14,
   paddingVertical: 16,
 }
@@ -191,62 +426,37 @@ const $goalHero: ViewStyle = {
 const $accentLine: ViewStyle = {
   width: 4,
   borderRadius: 2,
+  alignSelf: "stretch",
+  minHeight: 32,
 }
 
-const $heroText: ViewStyle = {
+const $appName: TextStyle = {
   flex: 1,
-  gap: 4,
-}
-
-const $goalName: TextStyle = {
   fontSize: 22,
   fontWeight: "800",
 }
 
-const $goalWhy: TextStyle = {
-  fontSize: 15,
-}
-
-const $statsRow: ViewStyle = {
+const $foreverRow: ViewStyle = {
   flexDirection: "row",
-  gap: 10,
-  marginBottom: 16,
+  alignItems: "center",
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 20,
+  gap: 12,
 }
 
-const $statCard: ViewStyle = {
+const $foreverLeft: ViewStyle = {
   flex: 1,
-  borderRadius: 14,
-  padding: 14,
-  alignItems: "center",
   gap: 2,
 }
 
-const $statValue: TextStyle = {
-  fontSize: 20,
+const $foreverLabel: TextStyle = {
+  fontSize: 16,
   fontWeight: "700",
 }
 
-const $statLabel: TextStyle = {
-  fontSize: 11,
-}
-
-const $durationRow: ViewStyle = {
-  flexDirection: "row",
-  gap: 10,
-  marginBottom: 20,
-}
-
-const $durationBtn: ViewStyle = {
-  flex: 1,
-  borderRadius: 14,
-  padding: 14,
-  alignItems: "center",
-}
-
-const $durationBtnText: TextStyle = {
-  color: "#000",
-  fontWeight: "700",
-  fontSize: 14,
+const $foreverSub: TextStyle = {
+  fontSize: 13,
 }
 
 const $sectionTitle: TextStyle = {
@@ -254,55 +464,167 @@ const $sectionTitle: TextStyle = {
   fontWeight: "600",
   letterSpacing: 1,
   textTransform: "uppercase",
-  marginBottom: 8,
+  marginBottom: 10,
 }
 
-const $sessionRow: ViewStyle = {
-  borderRadius: 12,
-  borderLeftWidth: 3,
-  padding: 14,
-  gap: 6,
+const $listContent: ViewStyle = {
+  gap: 8,
 }
 
-const $sessionMeta: ViewStyle = {
+const $tfRow: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
-  gap: 12,
+  borderRadius: 12,
+  overflow: "hidden",
+  paddingRight: 14,
+  gap: 14,
 }
 
-const $sessionDate: TextStyle = {
-  fontSize: 13,
-  width: 48,
+const $tfAccent: ViewStyle = {
+  width: 4,
+  alignSelf: "stretch",
+  minHeight: 52,
 }
 
-const $sessionDuration: TextStyle = {
+const $tfContent: ViewStyle = {
+  flex: 1,
+  paddingVertical: 14,
+  gap: 3,
+}
+
+const $tfDays: TextStyle = {
   fontSize: 14,
   fontWeight: "600",
-  width: 36,
 }
 
-const $focusDots: ViewStyle = {
-  flexDirection: "row",
-  gap: 4,
-}
-
-const $focusDot: ViewStyle = {
-  width: 8,
-  height: 8,
-  borderRadius: 4,
-}
-
-const $sessionReflection: TextStyle = {
+const $tfTime: TextStyle = {
   fontSize: 13,
-  lineHeight: 18,
 }
 
-const $noSessions: ViewStyle = {
+const $tfDeleteText: TextStyle = {
+  fontSize: 16,
+}
+
+const $addTfBtn: ViewStyle = {
+  borderRadius: 12,
+  borderWidth: 1,
+  padding: 14,
+  alignItems: "center",
+  marginTop: 4,
+}
+
+const $addTfText: TextStyle = {
+  fontSize: 14,
+  fontWeight: "600",
+}
+
+const $emptySchedule: TextStyle = {
+  fontSize: 14,
+  textAlign: "center",
+  paddingVertical: 16,
+}
+
+const $foreverMessage: ViewStyle = {
   flex: 1,
   alignItems: "center",
   justifyContent: "center",
+  paddingHorizontal: 32,
 }
 
-const $noSessionsText: TextStyle = {
+const $foreverMessageText: TextStyle = {
   fontSize: 15,
+  textAlign: "center",
+  lineHeight: 24,
+}
+
+const $modalOverlay: ViewStyle = {
+  flex: 1,
+  justifyContent: "flex-end",
+}
+
+const $modalSheet: ViewStyle = {
+  borderTopLeftRadius: 24,
+  borderTopRightRadius: 24,
+  padding: 24,
+  gap: 12,
+}
+
+const $modalHandle: ViewStyle = {
+  width: 40,
+  height: 4,
+  borderRadius: 2,
+  alignSelf: "center",
+  marginBottom: 8,
+}
+
+const $modalTitle: TextStyle = {
+  fontSize: 20,
+  fontWeight: "700",
+  marginBottom: 4,
+}
+
+const $tfInputLabel: TextStyle = {
+  fontSize: 13,
+  marginBottom: -4,
+}
+
+const $dayRow: ViewStyle = {
+  flexDirection: "row",
+  gap: 6,
+  flexWrap: "nowrap",
+}
+
+const $dayChip: ViewStyle = {
+  flex: 1,
+  borderRadius: 8,
+  borderWidth: 1,
+  paddingVertical: 8,
+  alignItems: "center",
+}
+
+const $dayChipText: TextStyle = {
+  fontSize: 12,
+  fontWeight: "600",
+}
+
+const $timeRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "flex-end",
+  gap: 8,
+}
+
+const $timeField: ViewStyle = {
+  flex: 1,
+  gap: 6,
+}
+
+const $timeSep: TextStyle = {
+  fontSize: 20,
+  paddingBottom: 14,
+}
+
+const $timeInput: TextStyle = {
+  borderRadius: 12,
+  borderWidth: 1,
+  padding: 14,
+  fontSize: 15,
+  textAlign: "center",
+}
+
+const $errorText: TextStyle = {
+  fontSize: 13,
+  marginTop: -4,
+}
+
+const $modalActions: ViewStyle = {
+  flexDirection: "row",
+  gap: 10,
+  marginTop: 4,
+}
+
+const $modalBtn: ViewStyle = {
+  flex: 1,
+  borderRadius: 12,
+  padding: 14,
+  alignItems: "center",
 }

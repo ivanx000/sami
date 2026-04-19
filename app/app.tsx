@@ -11,8 +11,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
 import { AuthProvider } from "./context/AuthContext"
-import { GoalProvider } from "./context/GoalContext"
-import { SessionProvider } from "./context/SessionContext"
+import { AppBlockProvider } from "./context/AppBlockContext"
 import { initI18n } from "./i18n"
 import { AppNavigator } from "./navigators/AppNavigator"
 import { useNavigationPersistence } from "./navigators/navigationUtilities"
@@ -29,8 +28,8 @@ const config = {
     Login: { path: "" },
     Main: {
       screens: {
-        Goals: { path: "goals" },
-        Insights: { path: "insights" },
+        AppsList: { path: "" },
+        AppDetail: { path: "app/:appId" },
       },
     },
   },
@@ -60,17 +59,15 @@ export function App() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
         <AuthProvider>
-          <GoalProvider>
-            <SessionProvider>
-              <ThemeProvider>
-                <AppNavigator
-                  linking={{ prefixes: [prefix], config }}
-                  initialState={initialNavigationState}
-                  onStateChange={onNavigationStateChange}
-                />
-              </ThemeProvider>
-            </SessionProvider>
-          </GoalProvider>
+          <AppBlockProvider>
+            <ThemeProvider>
+              <AppNavigator
+                linking={{ prefixes: [prefix], config }}
+                initialState={initialNavigationState}
+                onStateChange={onNavigationStateChange}
+              />
+            </ThemeProvider>
+          </AppBlockProvider>
         </AuthProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
