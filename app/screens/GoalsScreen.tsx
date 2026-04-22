@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 
+import { Cog6ToothIcon, PlusCircleIcon } from "react-native-heroicons/outline"
+
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
@@ -146,14 +148,18 @@ export function AppsScreen() {
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="light">
       <View style={[$header, { paddingHorizontal: spacing.md }]}>
-        <Text preset="heading" style={[$appTitle, { color: colors.text }]}>
-          Sami
-        </Text>
+        <View style={$headerLeft}>
+          <TouchableOpacity style={$iconBtn} activeOpacity={0.7}>
+            <Cog6ToothIcon size={26} color="#FFFFFF" strokeWidth={1.5} />
+          </TouchableOpacity>
+          <Text style={$appTitle}>sami</Text>
+        </View>
         <TouchableOpacity
           onPress={() => setShowModal(true)}
-          style={[$fab, { backgroundColor: colors.tint }]}
+          style={$iconBtn}
+          activeOpacity={0.7}
         >
-          <Text style={{ color: "#000", fontSize: 22, fontWeight: "700", lineHeight: 26 }}>+</Text>
+          <PlusCircleIcon size={32} color="#FFFFFF" strokeWidth={1.5} />
         </TouchableOpacity>
       </View>
 
@@ -191,20 +197,29 @@ const $header: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
-  paddingVertical: 16,
+  paddingVertical: 12,
+}
+
+const $headerLeft: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 10,
+}
+
+const $iconBtn: ViewStyle = {
+  alignItems: "center",
+  justifyContent: "center",
 }
 
 const $appTitle: TextStyle = {
   fontSize: 28,
-  fontWeight: "800",
-}
-
-const $fab: ViewStyle = {
-  width: 36,
-  height: 36,
-  borderRadius: 18,
-  alignItems: "center",
-  justifyContent: "center",
+  lineHeight: 28,
+  fontWeight: "700",
+  fontFamily: "spaceGroteskBold",
+  color: "#FFFFFF",
+  letterSpacing: -0.5,
+  includeFontPadding: false,
+  marginTop: 6,
 }
 
 const $listContent: ViewStyle = {

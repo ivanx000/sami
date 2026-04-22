@@ -13,8 +13,12 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./app/*"],
-      "@assets/*": ["./assets/*"]
+      "@/*": [
+        "./app/*"
+      ],
+      "@assets/*": [
+        "./assets/*"
+      ]
     },
     "typeRoots": [
       "./node_modules/@types",
@@ -28,9 +32,7 @@
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "**/*.tsx"
   ],
   "exclude": [
     "node_modules",
