@@ -27,7 +27,22 @@
   "ios": {
     "icon": "./assets/images/app-icon-ios.png",
     "supportsTablet": true,
-    "bundleIdentifier": "com.sami"
+    "bundleIdentifier": "com.sami",
+    "infoPlist": {
+      "LSApplicationQueriesSchemes": [
+        "instagram", "tiktok", "twitter", "fb", "snapchat", "pinterest",
+        "linkedin", "tumblr", "bereal", "barcelona",
+        "youtube", "twitch", "nflx", "hulu", "disneyplus", "primevideo", "max", "videos",
+        "whatsapp", "tg", "discord", "fb-messenger", "sgnl", "slack",
+        "roblox", "minecraft", "clashofclans", "king-candycrushsaga", "chess",
+        "amazon", "ebay", "shein", "etsy",
+        "spotify", "music", "soundcloud",
+        "reddit", "applenews", "flipboard", "medium",
+        "tinder", "bumble", "hinge",
+        "x-web-search", "googlechrome",
+        "doordash", "ubereats"
+      ]
+    }
   },
   "web": {
     "favicon": "./assets/images/app-icon-web-favicon.png",

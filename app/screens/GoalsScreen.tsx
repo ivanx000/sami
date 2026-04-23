@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Modal,
@@ -19,7 +20,8 @@ import { CheckIcon, Cog6ToothIcon, MagnifyingGlassIcon, PlusCircleIcon, PlusIcon
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
-import { CURATED_APPS, filterCuratedApps } from "@/data/curatedApps"
+import { filterCuratedApps } from "@/data/curatedApps"
+import { useInstalledApps } from "@/hooks/useInstalledApps"
 import type { BlockedApp } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
 import type { MainStackParamList } from "@/navigators/navigationTypes"
@@ -50,9 +52,9 @@ function AppCard({ app, onPress }: { app: BlockedApp; onPress: () => void }) {
       activeOpacity={0.7}
     >
       <View style={$cardRow}>
-        {app.icon ? (
-          <View style={[$appIconBox, { backgroundColor: app.accentColor + "22" }]}>
-            <Text style={$appIconEmoji}>{app.icon}</Text>
+        {app.brandColor ? (
+          <View style={[$appIconBox, { backgroundColor: app.brandColor }]}>
+            <Text style={$appIconInitials}>{app.name.slice(0, 2).toUpperCase()}</Text>
           </View>
         ) : (
           <View style={[$accentDot, { backgroundColor: app.accentColor }]} />
@@ -82,8 +84,9 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   } = useAppTheme()
   const insets = useSafeAreaInsets()
   const [query, setQuery] = useState("")
+  const { apps: installedApps, loading } = useInstalledApps()
 
-  const filtered = useMemo(() => filterCuratedApps(query), [query])
+  const filtered = useMemo(() => filterCuratedApps(installedApps, query), [installedApps, query])
   const addedNames = useMemo(() => new Set(apps.map((a) => a.name)), [apps])
 
   const handleClose = () => {
@@ -91,12 +94,12 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
     onClose()
   }
 
-  const renderRow = ({ item }: { item: (typeof CURATED_APPS)[number] }) => {
+  const renderRow = ({ item }: { item: (typeof installedApps)[number] }) => {
     const alreadyAdded = addedNames.has(item.name)
     return (
       <View style={[$pickerRow, { borderBottomColor: colors.border }]}>
-        <View style={[$pickerIconBox, { backgroundColor: colors.cardElevated }]}>
-          <Text style={$pickerIconEmoji}>{item.icon}</Text>
+        <View style={[$pickerIconBox, { backgroundColor: item.brandColor }]}>
+          <Text style={$pickerIconInitials}>{item.initials}</Text>
         </View>
         <Text style={[$pickerName, { color: colors.text }]} numberOfLines={1}>
           {item.name}
@@ -104,11 +107,10 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
         <TouchableOpacity
           style={[
             $pickerAddBtn,
-            alreadyAdded && { backgroundColor: colors.cardElevated },
-            !alreadyAdded && { backgroundColor: colors.tint + "22" },
+            alreadyAdded ? { backgroundColor: colors.cardElevated } : { backgroundColor: colors.tint + "22" },
           ]}
           onPress={() => {
-            if (!alreadyAdded) addApp(item.name, item.icon)
+            if (!alreadyAdded) addApp(item.name, item.brandColor)
           }}
           disabled={alreadyAdded}
           activeOpacity={0.6}
@@ -155,13 +157,19 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
           />
         </View>
 
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={renderRow}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        />
+        {loading ? (
+          <View style={$pickerLoading}>
+            <ActivityIndicator color={colors.tint} />
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            renderItem={renderRow}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          />
+        )}
       </View>
     </Modal>
   )
@@ -380,8 +388,17 @@ const $pickerIconBox: ViewStyle = {
   flexShrink: 0,
 }
 
-const $pickerIconEmoji: TextStyle = {
-  fontSize: 22,
+const $pickerIconInitials: TextStyle = {
+  fontSize: 13,
+  fontWeight: "700",
+  color: "#FFFFFF",
+  letterSpacing: 0.3,
+}
+
+const $pickerLoading: ViewStyle = {
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
 }
 
 const $pickerName: TextStyle = {
@@ -407,6 +424,9 @@ const $appIconBox: ViewStyle = {
   flexShrink: 0,
 }
 
-const $appIconEmoji: TextStyle = {
-  fontSize: 18,
+const $appIconInitials: TextStyle = {
+  fontSize: 11,
+  fontWeight: "700",
+  color: "#FFFFFF",
+  letterSpacing: 0.3,
 }

@@ -6,7 +6,7 @@ import type { BlockedApp, TimeFrame } from "@/models/types"
 
 type AppBlockContextType = {
   apps: BlockedApp[]
-  addApp: (name: string, icon?: string) => BlockedApp
+  addApp: (name: string, brandColor?: string) => BlockedApp
   updateApp: (id: string, updates: Partial<BlockedApp>) => void
   deleteApp: (id: string) => void
   getApp: (id: string) => BlockedApp | undefined
@@ -30,7 +30,7 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
   const persist = useCallback((next: BlockedApp[]) => setRaw(JSON.stringify(next)), [setRaw])
 
   const addApp = useCallback(
-    (name: string, icon?: string): BlockedApp => {
+    (name: string, brandColor?: string): BlockedApp => {
       const usedColors = apps.map((a) => a.accentColor)
       const accentColor =
         GOAL_ACCENT_COLORS.find((c) => !usedColors.includes(c)) ??
@@ -38,7 +38,7 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       const app: BlockedApp = {
         id: Date.now().toString(),
         name,
-        icon,
+        brandColor,
         accentColor,
         blockedForever: false,
         timeFrames: [],

@@ -8,7 +8,7 @@ export interface TimeFrame {
 export interface BlockedApp {
   id: string
   name: string
-  icon?: string
+  brandColor?: string
   accentColor: string
   blockedForever: boolean
   timeFrames: TimeFrame[]
