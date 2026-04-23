@@ -1,8 +1,7 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
-  Alert,
+  Dimensions,
   FlatList,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   TextInput,
@@ -15,11 +14,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 
-import { Cog6ToothIcon, PlusCircleIcon } from "react-native-heroicons/outline"
+import { CheckIcon, Cog6ToothIcon, MagnifyingGlassIcon, PlusCircleIcon, PlusIcon, XMarkIcon } from "react-native-heroicons/outline"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
+import { CURATED_APPS, filterCuratedApps } from "@/data/curatedApps"
 import type { BlockedApp } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
 import type { MainStackParamList } from "@/navigators/navigationTypes"
@@ -50,7 +50,13 @@ function AppCard({ app, onPress }: { app: BlockedApp; onPress: () => void }) {
       activeOpacity={0.7}
     >
       <View style={$cardRow}>
-        <View style={[$accentDot, { backgroundColor: app.accentColor }]} />
+        {app.icon ? (
+          <View style={[$appIconBox, { backgroundColor: app.accentColor + "22" }]}>
+            <Text style={$appIconEmoji}>{app.icon}</Text>
+          </View>
+        ) : (
+          <View style={[$accentDot, { backgroundColor: app.accentColor }]} />
+        )}
         <Text style={[$appName, { color: colors.text }]} numberOfLines={1}>
           {app.name}
         </Text>
@@ -67,71 +73,96 @@ function AppCard({ app, onPress }: { app: BlockedApp; onPress: () => void }) {
   )
 }
 
-function AddAppModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { addApp } = useAppBlock()
+const SHEET_HEIGHT = Dimensions.get("window").height * 0.68
+
+function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { addApp, apps } = useAppBlock()
   const {
     theme: { colors },
   } = useAppTheme()
-  const [name, setName] = useState("")
+  const insets = useSafeAreaInsets()
+  const [query, setQuery] = useState("")
 
-  const handleAdd = () => {
-    if (!name.trim()) {
-      Alert.alert("Name required", "Enter the app name.")
-      return
-    }
-    addApp(name.trim())
-    setName("")
+  const filtered = useMemo(() => filterCuratedApps(query), [query])
+  const addedNames = useMemo(() => new Set(apps.map((a) => a.name)), [apps])
+
+  const handleClose = () => {
+    setQuery("")
     onClose()
   }
 
-  const handleClose = () => {
-    setName("")
-    onClose()
+  const renderRow = ({ item }: { item: (typeof CURATED_APPS)[number] }) => {
+    const alreadyAdded = addedNames.has(item.name)
+    return (
+      <View style={[$pickerRow, { borderBottomColor: colors.border }]}>
+        <View style={[$pickerIconBox, { backgroundColor: colors.cardElevated }]}>
+          <Text style={$pickerIconEmoji}>{item.icon}</Text>
+        </View>
+        <Text style={[$pickerName, { color: colors.text }]} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <TouchableOpacity
+          style={[
+            $pickerAddBtn,
+            alreadyAdded && { backgroundColor: colors.cardElevated },
+            !alreadyAdded && { backgroundColor: colors.tint + "22" },
+          ]}
+          onPress={() => {
+            if (!alreadyAdded) addApp(item.name, item.icon)
+          }}
+          disabled={alreadyAdded}
+          activeOpacity={0.6}
+        >
+          {alreadyAdded ? (
+            <CheckIcon size={18} color={colors.textDim} strokeWidth={2} />
+          ) : (
+            <PlusIcon size={18} color={colors.tint} strokeWidth={2.5} />
+          )}
+        </TouchableOpacity>
+      </View>
+    )
   }
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={$modalOverlay}
+      <TouchableOpacity style={$pickerOverlay} activeOpacity={1} onPress={handleClose} />
+      <View
+        style={[
+          $pickerSheet,
+          { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, height: SHEET_HEIGHT },
+        ]}
       >
-        <View style={[$modalSheet, { backgroundColor: colors.card }]}>
-          <View style={[$modalHandle, { backgroundColor: colors.border }]} />
+        <View style={[$modalHandle, { backgroundColor: colors.border }]} />
+
+        <View style={$pickerHeader}>
           <Text style={[$modalTitle, { color: colors.text }]}>Block an App</Text>
-          <Text style={[$inputLabel, { color: colors.textDim }]}>App name</Text>
-          <TextInput
-            style={[
-              $input,
-              {
-                backgroundColor: colors.cardElevated,
-                color: colors.text,
-                borderColor: colors.border,
-              },
-            ]}
-            placeholder="Instagram, TikTok, Twitter…"
-            placeholderTextColor={colors.textDim}
-            value={name}
-            onChangeText={setName}
-            autoFocus
-            returnKeyType="done"
-            onSubmitEditing={handleAdd}
-          />
-          <View style={$modalActions}>
-            <TouchableOpacity
-              style={[$modalBtn, { backgroundColor: colors.cardElevated }]}
-              onPress={handleClose}
-            >
-              <Text style={{ color: colors.textDim }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[$modalBtn, { backgroundColor: colors.tint }]}
-              onPress={handleAdd}
-            >
-              <Text style={{ color: "#000", fontWeight: "700" }}>Add</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={handleClose} hitSlop={12}>
+            <XMarkIcon size={22} color={colors.textDim} strokeWidth={2} />
+          </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+
+        <View style={[$searchBar, { backgroundColor: colors.cardElevated, borderColor: colors.border }]}>
+          <MagnifyingGlassIcon size={16} color={colors.textDim} strokeWidth={2} />
+          <TextInput
+            style={[$searchInput, { color: colors.text }]}
+            placeholder="Search apps…"
+            placeholderTextColor={colors.textDim}
+            value={query}
+            onChangeText={setQuery}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+        </View>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          renderItem={renderRow}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
+      </View>
     </Modal>
   )
 }
@@ -188,7 +219,7 @@ export function AppsScreen() {
         />
       )}
 
-      <AddAppModal visible={showModal} onClose={() => setShowModal(false)} />
+      <AppPickerSheet visible={showModal} onClose={() => setShowModal(false)} />
     </Screen>
   )
 }
@@ -279,18 +310,6 @@ const $emptySubtitle: TextStyle = {
   fontSize: 15,
 }
 
-const $modalOverlay: ViewStyle = {
-  flex: 1,
-  justifyContent: "flex-end",
-}
-
-const $modalSheet: ViewStyle = {
-  borderTopLeftRadius: 24,
-  borderTopRightRadius: 24,
-  padding: 24,
-  gap: 12,
-}
-
 const $modalHandle: ViewStyle = {
   width: 40,
   height: 4,
@@ -302,30 +321,92 @@ const $modalHandle: ViewStyle = {
 const $modalTitle: TextStyle = {
   fontSize: 20,
   fontWeight: "700",
-  marginBottom: 4,
 }
 
-const $inputLabel: TextStyle = {
-  fontSize: 13,
-  marginBottom: -4,
+const $pickerOverlay: ViewStyle = {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.4)",
 }
 
-const $input: TextStyle = {
+const $pickerSheet: ViewStyle = {
+  borderTopLeftRadius: 24,
+  borderTopRightRadius: 24,
+  paddingHorizontal: 20,
+  paddingTop: 12,
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+}
+
+const $pickerHeader: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: 14,
+}
+
+const $searchBar: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
   borderRadius: 12,
   borderWidth: 1,
-  padding: 14,
-  fontSize: 15,
+  paddingHorizontal: 12,
+  paddingVertical: Platform.OS === "ios" ? 10 : 6,
+  gap: 8,
+  marginBottom: 8,
 }
 
-const $modalActions: ViewStyle = {
-  flexDirection: "row",
-  gap: 10,
-  marginTop: 8,
-}
-
-const $modalBtn: ViewStyle = {
+const $searchInput: TextStyle = {
   flex: 1,
-  borderRadius: 12,
-  padding: 14,
+  fontSize: 15,
+  padding: 0,
+}
+
+const $pickerRow: ViewStyle = {
+  flexDirection: "row",
   alignItems: "center",
+  paddingVertical: 10,
+  gap: 12,
+  borderBottomWidth: 0.5,
+}
+
+const $pickerIconBox: ViewStyle = {
+  width: 44,
+  height: 44,
+  borderRadius: 12,
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+}
+
+const $pickerIconEmoji: TextStyle = {
+  fontSize: 22,
+}
+
+const $pickerName: TextStyle = {
+  flex: 1,
+  fontSize: 15,
+  fontWeight: "600",
+}
+
+const $pickerAddBtn: ViewStyle = {
+  width: 36,
+  height: 36,
+  borderRadius: 10,
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const $appIconBox: ViewStyle = {
+  width: 34,
+  height: 34,
+  borderRadius: 9,
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+}
+
+const $appIconEmoji: TextStyle = {
+  fontSize: 18,
 }
