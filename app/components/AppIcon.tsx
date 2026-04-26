@@ -15,10 +15,12 @@ export function AppIcon({ name, initials, brandColor, iconUrl, size = 34 }: AppI
 
   if (iconUrl) {
     return (
-      <Image
-        source={{ uri: iconUrl }}
-        style={[$image, { width: size, height: size, borderRadius: radius }]}
-      />
+      <View style={[$box, { backgroundColor: brandColor, width: size, height: size, borderRadius: radius }]}>
+        <Image
+          source={{ uri: iconUrl }}
+          style={[$image, { width: size, height: size }]}
+        />
+      </View>
     )
   }
 
@@ -37,6 +39,7 @@ const $box: ViewStyle = {
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
+  overflow: "hidden",
 }
 
 const $initials: TextStyle = {
