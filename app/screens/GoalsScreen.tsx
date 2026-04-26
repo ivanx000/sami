@@ -17,10 +17,12 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 
 import { CheckIcon, Cog6ToothIcon, MagnifyingGlassIcon, PlusCircleIcon, PlusIcon, XMarkIcon } from "react-native-heroicons/outline"
 
+import { AppIcon } from "@/components/AppIcon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
-import { filterCuratedApps } from "@/data/curatedApps"
+import { CURATED_APPS, filterCuratedApps } from "@/data/curatedApps"
+import { useAppIcons } from "@/hooks/useAppIcons"
 import { useInstalledApps } from "@/hooks/useInstalledApps"
 import type { BlockedApp } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
@@ -28,7 +30,7 @@ import type { MainStackParamList } from "@/navigators/navigationTypes"
 
 type NavProp = NativeStackNavigationProp<MainStackParamList>
 
-function AppCard({ app, onPress }: { app: BlockedApp; onPress: () => void }) {
+function AppCard({ app, onPress, iconUrl }: { app: BlockedApp; onPress: () => void; iconUrl?: string }) {
   const {
     theme: { colors },
   } = useAppTheme()
@@ -52,13 +54,13 @@ function AppCard({ app, onPress }: { app: BlockedApp; onPress: () => void }) {
       activeOpacity={0.7}
     >
       <View style={$cardRow}>
-        {app.brandColor ? (
-          <View style={[$appIconBox, { backgroundColor: app.brandColor }]}>
-            <Text style={$appIconInitials}>{app.name.slice(0, 2).toUpperCase()}</Text>
-          </View>
-        ) : (
-          <View style={[$accentDot, { backgroundColor: app.accentColor }]} />
-        )}
+        <AppIcon
+          name={app.name}
+          initials={app.name.slice(0, 2).toUpperCase()}
+          brandColor={app.brandColor ?? app.accentColor}
+          iconUrl={iconUrl}
+          size={34}
+        />
         <Text style={[$appName, { color: colors.text }]} numberOfLines={1}>
           {app.name}
         </Text>
@@ -85,6 +87,7 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   const insets = useSafeAreaInsets()
   const [query, setQuery] = useState("")
   const { apps: installedApps, loading } = useInstalledApps()
+  const iconUrls = useAppIcons(installedApps)
 
   const filtered = useMemo(() => filterCuratedApps(installedApps, query), [installedApps, query])
   const addedNames = useMemo(() => new Set(apps.map((a) => a.name)), [apps])
@@ -98,9 +101,13 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
     const alreadyAdded = addedNames.has(item.name)
     return (
       <View style={[$pickerRow, { borderBottomColor: colors.border }]}>
-        <View style={[$pickerIconBox, { backgroundColor: item.brandColor }]}>
-          <Text style={$pickerIconInitials}>{item.initials}</Text>
-        </View>
+        <AppIcon
+          name={item.name}
+          initials={item.initials}
+          brandColor={item.brandColor}
+          iconUrl={iconUrls[item.id]}
+          size={36}
+        />
         <Text style={[$pickerName, { color: colors.text }]} numberOfLines={1}>
           {item.name}
         </Text>
@@ -183,6 +190,14 @@ export function AppsScreen() {
   const navigation = useNavigation<NavProp>()
   const insets = useSafeAreaInsets()
   const [showModal, setShowModal] = useState(false)
+  const iconUrls = useAppIcons(CURATED_APPS)
+  const iconUrlByName = useMemo(() => {
+    const map: Record<string, string> = {}
+    CURATED_APPS.forEach((a) => {
+      if (iconUrls[a.id]) map[a.name] = iconUrls[a.id]
+    })
+    return map
+  }, [iconUrls])
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="light">
@@ -217,6 +232,7 @@ export function AppsScreen() {
             <AppCard
               app={item}
               onPress={() => navigation.navigate("AppDetail", { appId: item.id })}
+              iconUrl={iconUrlByName[item.name]}
             />
           )}
           contentContainerStyle={[
@@ -275,13 +291,6 @@ const $cardRow: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   gap: 12,
-}
-
-const $accentDot: ViewStyle = {
-  width: 10,
-  height: 10,
-  borderRadius: 5,
-  flexShrink: 0,
 }
 
 const $appName: TextStyle = {
@@ -379,22 +388,6 @@ const $pickerRow: ViewStyle = {
   borderBottomWidth: 0.5,
 }
 
-const $pickerIconBox: ViewStyle = {
-  width: 44,
-  height: 44,
-  borderRadius: 12,
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-}
-
-const $pickerIconInitials: TextStyle = {
-  fontSize: 13,
-  fontWeight: "700",
-  color: "#FFFFFF",
-  letterSpacing: 0.3,
-}
-
 const $pickerLoading: ViewStyle = {
   flex: 1,
   alignItems: "center",
@@ -415,18 +408,3 @@ const $pickerAddBtn: ViewStyle = {
   justifyContent: "center",
 }
 
-const $appIconBox: ViewStyle = {
-  width: 34,
-  height: 34,
-  borderRadius: 9,
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-}
-
-const $appIconInitials: TextStyle = {
-  fontSize: 11,
-  fontWeight: "700",
-  color: "#FFFFFF",
-  letterSpacing: 0.3,
-}
