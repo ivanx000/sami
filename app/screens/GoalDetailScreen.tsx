@@ -327,8 +327,8 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
         <Switch
           value={app.blockedForever}
           onValueChange={(v) => updateApp(appId, { blockedForever: v })}
-          trackColor={{ false: colors.cardElevated, true: "#FF6B6B" }}
-          thumbColor="#fff"
+          trackColor={{ false: colors.cardElevated, true: "#007AFF" }}
+          ios_backgroundColor={colors.cardElevated}
         />
       </View>
 

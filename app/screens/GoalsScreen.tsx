@@ -5,6 +5,7 @@ import {
   FlatList,
   Modal,
   Platform,
+  Switch,
   TextInput,
   TouchableOpacity,
   View,
@@ -34,18 +35,7 @@ function AppCard({ app, onPress, iconUrl }: { app: BlockedApp; onPress: () => vo
   const {
     theme: { colors },
   } = useAppTheme()
-
-  const statusLabel = app.blockedForever
-    ? "Blocked forever"
-    : app.timeFrames.length > 0
-      ? `${app.timeFrames.length} schedule${app.timeFrames.length === 1 ? "" : "s"}`
-      : "No schedule"
-
-  const statusColor = app.blockedForever
-    ? "#FF6B6B"
-    : app.timeFrames.length > 0
-      ? app.accentColor
-      : colors.textDim
+  const { updateApp } = useAppBlock()
 
   return (
     <TouchableOpacity
@@ -64,14 +54,12 @@ function AppCard({ app, onPress, iconUrl }: { app: BlockedApp; onPress: () => vo
         <Text style={[$appName, { color: colors.text }]} numberOfLines={1}>
           {app.name}
         </Text>
-        <View
-          style={[
-            $statusBadge,
-            { borderColor: statusColor + "44", backgroundColor: statusColor + "18" },
-          ]}
-        >
-          <Text style={[$statusText, { color: statusColor }]}>{statusLabel}</Text>
-        </View>
+        <Switch
+          value={app.blockedForever}
+          onValueChange={(v) => updateApp(app.id, { blockedForever: v })}
+          trackColor={{ false: colors.cardElevated, true: "#007AFF" }}
+          ios_backgroundColor={colors.cardElevated}
+        />
       </View>
     </TouchableOpacity>
   )
@@ -299,17 +287,6 @@ const $appName: TextStyle = {
   fontWeight: "700",
 }
 
-const $statusBadge: ViewStyle = {
-  borderWidth: 1,
-  borderRadius: 10,
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-}
-
-const $statusText: TextStyle = {
-  fontSize: 12,
-  fontWeight: "600",
-}
 
 const $empty: ViewStyle = {
   flex: 1,
