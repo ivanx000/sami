@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 
-import { CheckIcon, Cog6ToothIcon, MagnifyingGlassIcon, PlusCircleIcon, PlusIcon, XMarkIcon } from "react-native-heroicons/outline"
+import { CheckIcon, ChevronRightIcon, Cog6ToothIcon, MagnifyingGlassIcon, PlusCircleIcon, PlusIcon, XMarkIcon } from "react-native-heroicons/outline"
 
 import { AppIcon } from "@/components/AppIcon"
 import { Screen } from "@/components/Screen"
@@ -37,6 +37,12 @@ function AppCard({ app, onPress, iconUrl }: { app: BlockedApp; onPress: () => vo
   } = useAppTheme()
   const { updateApp } = useAppBlock()
 
+  const subtitle = app.blockedForever
+    ? "Blocked at all times"
+    : app.timeFrames.length > 0
+      ? `${app.timeFrames.length} schedule${app.timeFrames.length === 1 ? "" : "s"}`
+      : "No schedule"
+
   return (
     <TouchableOpacity
       style={[$card, { backgroundColor: colors.card }]}
@@ -51,9 +57,15 @@ function AppCard({ app, onPress, iconUrl }: { app: BlockedApp; onPress: () => vo
           iconUrl={iconUrl}
           size={34}
         />
-        <Text style={[$appName, { color: colors.text }]} numberOfLines={1}>
-          {app.name}
-        </Text>
+        <View style={$cardContent}>
+          <Text style={[$appName, { color: colors.text }]} numberOfLines={1}>
+            {app.name}
+          </Text>
+          <Text style={[$appSubtitle, { color: colors.textDim }]} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        </View>
+        <ChevronRightIcon size={16} color={colors.textDim} strokeWidth={2} />
         <Switch
           value={app.blockedForever}
           onValueChange={(v) => updateApp(app.id, { blockedForever: v })}
@@ -281,10 +293,20 @@ const $cardRow: ViewStyle = {
   gap: 12,
 }
 
-const $appName: TextStyle = {
+const $cardContent: ViewStyle = {
   flex: 1,
+  flexDirection: "column",
+  gap: 2,
+}
+
+const $appName: TextStyle = {
   fontSize: 16,
   fontWeight: "700",
+}
+
+const $appSubtitle: TextStyle = {
+  fontSize: 13,
+  fontWeight: "400",
 }
 
 
