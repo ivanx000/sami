@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { useFonts } from "expo-font"
 import * as Linking from "expo-linking"
 import { KeyboardProvider } from "react-native-keyboard-controller"
+import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-context"
 
 import { AuthProvider } from "./context/AuthContext"
@@ -56,6 +57,7 @@ export function App() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <KeyboardProvider>
         <AuthProvider>
@@ -71,5 +73,6 @@ export function App() {
         </AuthProvider>
       </KeyboardProvider>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   )
 }
