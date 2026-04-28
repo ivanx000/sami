@@ -105,7 +105,7 @@ function AppCardContent({
   app,
   iconUrl,
   dimmed,
-  showBorder,
+  showBorder = true,
   colors,
 }: {
   app: BlockedApp
@@ -120,13 +120,14 @@ function AppCardContent({
     ? ["Always"]
     : app.timeFrames.map(formatTimeFrame)
 
-  const borderColor = tags.length > 0 ? app.accentColor : "transparent"
-  const topPad = tags.length > 0 ? tags.length * 28 + 4 : 0
+  const hasTags = showBorder && tags.length > 0
+  const borderColor = hasTags ? app.accentColor : "transparent"
+  const topPad = hasTags ? tags.length * 28 + 4 : 0
 
   return (
     <View style={{ opacity: dimmed ? 0.35 : 1 }}>
-      {/* Tags sitting on top of the border */}
-      {tags.map((label, i) => (
+      {/* Tags sitting on top of the border — only shown for standalone cards */}
+      {hasTags && tags.map((label, i) => (
         <View
           key={i}
           style={[$tagWrapper, { top: -(tags.length - i) * 28 }]}
@@ -138,11 +139,12 @@ function AppCardContent({
       <View
         style={[
           $card,
+          !showBorder && { borderRadius: 0 },
           {
             backgroundColor: colors.card,
-            borderColor: showBorder !== false ? borderColor : "transparent",
-            borderWidth: tags.length > 0 ? 2 : 0,
-            paddingTop: tags.length > 0 ? topPad : 14,
+            borderColor,
+            borderWidth: hasTags ? 2 : 0,
+            paddingTop: hasTags ? topPad : 14,
           },
         ]}
       >
@@ -217,6 +219,7 @@ function DraggableAppCard({
   isDraggingThis,
   isDropTarget,
   anyDragging,
+  isGrouped,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -229,6 +232,7 @@ function DraggableAppCard({
   isDraggingThis: boolean
   isDropTarget: boolean
   anyDragging: boolean
+  isGrouped?: boolean
   onDragStart: (appId: string, screenX: number, screenY: number, w: number, h: number) => void
   onDragMove: (screenX: number, screenY: number) => void
   onDragEnd: () => void
@@ -291,6 +295,7 @@ function DraggableAppCard({
                 app={app}
                 iconUrl={iconUrl}
                 dimmed={anyDragging && !isDraggingThis && !isDropTarget}
+                showBorder={!isGrouped}
                 colors={colors}
               />
             </View>
@@ -336,7 +341,6 @@ function GroupContainer({
     ? ["Always"]
     : anchorApp.timeFrames.map(formatTimeFrame)
 
-  const topPad = tags.length > 0 ? tags.length * 28 + 8 : 8
   const borderColor = anchorApp.accentColor
 
   return (
@@ -357,11 +361,12 @@ function GroupContainer({
       <View
         style={[
           $groupContainer,
-          { borderColor, paddingTop: topPad },
+          { borderColor },
         ]}
       >
         {groupApps.map((app, idx) => (
-          <View key={app.id} style={idx > 0 ? $groupDivider : undefined}>
+          <View key={app.id}>
+            {idx > 0 && <View style={[$groupDivider, { backgroundColor: borderColor + "40" }]} />}
             <DraggableAppCard
               app={app}
               iconUrl={iconUrlByName[app.name]}
@@ -369,6 +374,7 @@ function GroupContainer({
               isDraggingThis={draggingAppId === app.id}
               isDropTarget={dragTargetId === app.id}
               anyDragging={anyDragging}
+              isGrouped={true}
               onDragStart={onDragStart}
               onDragMove={onDragMove}
               onDragEnd={onDragEnd}
@@ -804,14 +810,12 @@ const $groupOuter: ViewStyle = {
 
 const $groupContainer: ViewStyle = {
   borderWidth: 2,
-  borderRadius: 18,
-  paddingHorizontal: 10,
-  paddingBottom: 10,
-  gap: 6,
+  borderRadius: 16,
+  overflow: "hidden",
 }
 
 const $groupDivider: ViewStyle = {
-  marginTop: 4,
+  height: 1,
 }
 
 const $empty: ViewStyle = {
