@@ -122,7 +122,7 @@ function AppCardContent({
 
   const hasTags = showBorder && tags.length > 0
   const borderColor = hasTags ? app.accentColor : "transparent"
-  const topPad = hasTags ? tags.length * 20 + 4 : 0
+  const topPad = hasTags ? tags.length * 18 + 4 : 0
 
   return (
     <View style={{ opacity: dimmed ? 0.35 : 1 }}>
@@ -130,7 +130,7 @@ function AppCardContent({
       {hasTags && tags.map((label, i) => (
         <View
           key={i}
-          style={[$tagWrapper, { top: -(tags.length - i) * 20 }]}
+          style={[$tagWrapper, { top: -(tags.length - i) * 18 }]}
         >
           <ScheduleTag label={label} color={app.accentColor} />
         </View>
@@ -344,14 +344,14 @@ function GroupContainer({
   const borderColor = anchorApp.accentColor
 
   return (
-    <View style={[$groupOuter, { marginTop: tags.length > 0 ? tags.length * 20 : 0 }]}>
+    <View style={[$groupOuter, { marginTop: tags.length > 0 ? tags.length * 18 : 0 }]}>
       {/* Group-level tags */}
       {tags.map((label, i) => (
         <View
           key={i}
           style={[
             $tagWrapper,
-            { top: -(tags.length - i) * 20, left: 12 },
+            { top: -(tags.length - i) * 18, left: 12 },
           ]}
         >
           <ScheduleTag label={label} color={borderColor} />
@@ -671,7 +671,7 @@ export function AppsScreen() {
               const hasSchedule = app.blockedForever || app.timeFrames.length > 0
               const tagCount = app.blockedForever ? 1 : app.timeFrames.length
               return (
-                <View key={app.id} style={{ marginTop: hasSchedule ? tagCount * 20 : 0 }}>
+                <View key={app.id} style={{ marginTop: hasSchedule ? tagCount * 18 : 0 }}>
                   <DraggableAppCard
                     app={app}
                     iconUrl={iconUrlByName[app.name]}
@@ -787,17 +787,17 @@ const $tagWrapper: ViewStyle = {
   position: "absolute",
   left: 12,
   zIndex: 10,
+  maxWidth: 100,
 }
 
 const $scheduleTag: ViewStyle = {
-  paddingHorizontal: 8,
-  paddingVertical: 2,
-  borderRadius: 6,
-  transform: [{ rotate: "-4deg" }],
+  paddingHorizontal: 7,
+  paddingVertical: 3,
+  borderRadius: 20,
 }
 
 const $scheduleTagText: TextStyle = {
-  fontSize: 10,
+  fontSize: 9,
   fontWeight: "700",
   color: "#FFFFFF",
   letterSpacing: 0.2,
