@@ -139,7 +139,6 @@ function AppCardContent({
       <View
         style={[
           $card,
-          !showBorder && { borderRadius: 0 },
           {
             backgroundColor: colors.card,
             borderColor,
@@ -364,9 +363,8 @@ function GroupContainer({
           { borderColor },
         ]}
       >
-        {groupApps.map((app, idx) => (
+        {groupApps.map((app) => (
           <View key={app.id}>
-            {idx > 0 && <View style={[$groupDivider, { backgroundColor: colors.card }]} />}
             <DraggableAppCard
               app={app}
               iconUrl={iconUrlByName[app.name]}
@@ -809,12 +807,9 @@ const $groupOuter: ViewStyle = {
 
 const $groupContainer: ViewStyle = {
   borderWidth: 3,
-  borderRadius: 16,
-  overflow: "hidden",
-}
-
-const $groupDivider: ViewStyle = {
-  height: 10,
+  borderRadius: 18,
+  padding: 8,
+  gap: 8,
 }
 
 const $empty: ViewStyle = {
