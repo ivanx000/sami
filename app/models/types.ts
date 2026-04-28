@@ -13,4 +13,5 @@ export interface BlockedApp {
   blockedForever: boolean
   timeFrames: TimeFrame[]
   createdAt: string
+  groupId?: string
 }

@@ -12,6 +12,8 @@ type AppBlockContextType = {
   getApp: (id: string) => BlockedApp | undefined
   addTimeFrame: (appId: string, tf: Omit<TimeFrame, "id">) => void
   removeTimeFrame: (appId: string, tfId: string) => void
+  groupApps: (draggedId: string, targetId: string) => void
+  ungroupApp: (appId: string) => void
 }
 
 export const AppBlockContext = createContext<AppBlockContextType | null>(null)
@@ -85,9 +87,32 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
     [apps, persist],
   )
 
+  const groupApps = useCallback(
+    (draggedId: string, targetId: string) => {
+      const target = apps.find((a) => a.id === targetId)
+      if (!target) return
+      const groupId = target.groupId ?? target.id
+      persist(
+        apps.map((a) => {
+          if (a.id === draggedId) return { ...a, groupId }
+          if (a.id === targetId && !a.groupId) return { ...a, groupId }
+          return a
+        }),
+      )
+    },
+    [apps, persist],
+  )
+
+  const ungroupApp = useCallback(
+    (appId: string) => {
+      persist(apps.map((a) => (a.id === appId ? { ...a, groupId: undefined } : a)))
+    },
+    [apps, persist],
+  )
+
   const value = useMemo(
-    () => ({ apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame }),
-    [apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame],
+    () => ({ apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp }),
+    [apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp],
   )
 
   return <AppBlockContext.Provider value={value}>{children}</AppBlockContext.Provider>
