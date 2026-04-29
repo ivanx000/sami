@@ -1149,7 +1149,7 @@ const $addButtonInner: ViewStyle = {
 
 const $addButtonText: TextStyle = {
   fontSize: 15,
-  fontFamily: "spaceGroteskMedium",
+  fontFamily: "spaceGroteskSemiBold",
   color: "#FFFFFF",
   letterSpacing: -0.2,
 }
