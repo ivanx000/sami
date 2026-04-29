@@ -824,6 +824,13 @@ export function AppsScreen() {
           >
             <Cog6ToothIcon size={16} color={colors.tintInactive} strokeWidth={2} />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[$navIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            activeOpacity={0.7}
+            onPress={() => setShowModal(true)}
+          >
+            <PlusIcon size={16} color={colors.tintInactive} strokeWidth={2.5} />
+          </TouchableOpacity>
         </View>
       </View>
 
