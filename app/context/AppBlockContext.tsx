@@ -70,7 +70,14 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
     (appId: string, tf: Omit<TimeFrame, "id">) => {
       const newTf: TimeFrame = { ...tf, id: Date.now().toString() }
       persist(
-        apps.map((a) => (a.id === appId ? { ...a, timeFrames: [...a.timeFrames, newTf] } : a)),
+        apps.map((a) => {
+          if (a.id !== appId) return a
+          return {
+            ...a,
+            timeFrames: [...a.timeFrames, newTf],
+            groupId: a.groupId ?? a.id,
+          }
+        }),
       )
     },
     [apps, persist],

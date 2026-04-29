@@ -44,8 +44,10 @@ import { useAppBlock } from "@/context/AppBlockContext"
 import { CURATED_APPS } from "@/data/curatedApps"
 import { useAppIcons } from "@/hooks/useAppIcons"
 import { useInstalledApps } from "@/hooks/useInstalledApps"
+import { useNow } from "@/hooks/useNow"
 import type { BlockedApp, TimeFrame } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
+import { isInSchedule } from "@/utils/scheduleUtils"
 import type { MainStackParamList } from "@/navigators/navigationTypes"
 
 type NavProp = NativeStackNavigationProp<MainStackParamList>
@@ -190,10 +192,12 @@ function AppCardContent({
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
   const { updateApp } = useAppBlock()
+  const now = useNow()
+  const scheduleActive = isInSchedule(app.timeFrames, now)
+  const effectivelyBlocked = app.blockedForever || scheduleActive
 
-  const scheduleText = app.blockedForever
-    ? "Always blocked"
-    : app.timeFrames.length > 0
+  const scheduleText =
+    app.timeFrames.length > 0
       ? formatTimeFrame(app.timeFrames[0]) +
         (app.timeFrames.length > 1 ? ` +${app.timeFrames.length - 1}` : "")
       : null
@@ -229,7 +233,7 @@ function AppCardContent({
             )}
           </View>
           <Switch
-            value={app.blockedForever}
+            value={effectivelyBlocked}
             onValueChange={(v) => updateApp(app.id, { blockedForever: v })}
             trackColor={{ false: colors.cardElevated, true: colors.tint }}
             ios_backgroundColor={colors.cardElevated}

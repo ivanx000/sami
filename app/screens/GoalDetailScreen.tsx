@@ -21,8 +21,10 @@ import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
 import { CURATED_APPS } from "@/data/curatedApps"
 import { useAppIcons } from "@/hooks/useAppIcons"
+import { useNow } from "@/hooks/useNow"
 import type { TimeFrame } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
+import { isInSchedule } from "@/utils/scheduleUtils"
 import type { MainStackScreenProps } from "@/navigators/navigationTypes"
 
 const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
@@ -357,10 +359,14 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
   const [showAddModal, setShowAddModal] = useState(false)
 
   const app = getApp(appId)
+  const now = useNow()
 
   const curatedApp = CURATED_APPS.find((c) => c.name === app?.name)
   const iconUrls = useAppIcons(curatedApp ? [curatedApp] : [])
   const iconUrl = curatedApp ? iconUrls[curatedApp.id] : undefined
+
+  const scheduleActive = app ? isInSchedule(app.timeFrames, now) : false
+  const effectivelyBlocked = (app?.blockedForever ?? false) || scheduleActive
 
   if (!app) {
     navigation.goBack()
@@ -381,11 +387,9 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
     ])
   }
 
-  const scheduleType = app.blockedForever
-    ? "Always"
-    : app.timeFrames.length > 0
-      ? "Scheduled"
-      : "No schedule"
+  const scheduleType = app.timeFrames.length > 0
+    ? scheduleActive ? "Blocking Now" : "Scheduled"
+    : effectivelyBlocked ? "Blocked" : "No schedule"
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark">
@@ -447,23 +451,20 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
         {/* Block schedule section */}
         <Text style={[$sectionTitle, { color: colors.tintInactive }]}>Block Schedule</Text>
         <View style={[$scheduleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          {/* Block Forever row */}
+          {/* Manual block row */}
           <View style={$scheduleRow}>
             <View style={$scheduleRowLeft}>
-              <Text style={[$scheduleRowTitle, { color: colors.text }]}>Block Forever</Text>
-              <Text style={[$scheduleRowSub, { color: colors.tintInactive }]}>
-                {app.blockedForever ? "Blocked until you turn this off" : "Override all schedules"}
-              </Text>
+              <Text style={[$scheduleRowTitle, { color: colors.text }]}>Blocked</Text>
             </View>
             <Switch
-              value={app.blockedForever}
+              value={effectivelyBlocked}
               onValueChange={(v) => updateApp(appId, { blockedForever: v })}
               trackColor={{ false: colors.cardElevated, true: colors.tint }}
               ios_backgroundColor={colors.cardElevated}
             />
           </View>
 
-          {!app.blockedForever && app.timeFrames.length > 0 && (
+          {app.timeFrames.length > 0 && (
             <>
               <View style={[$divider, { backgroundColor: colors.separator }]} />
               {app.timeFrames.map((tf, idx) => (
@@ -479,18 +480,14 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
             </>
           )}
 
-          {!app.blockedForever && (
-            <>
-              <View style={[$divider, { backgroundColor: colors.separator }]} />
-              <TouchableOpacity
-                style={$addTfRow}
-                onPress={() => setShowAddModal(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={[$addTfText, { color: colors.tint }]}>+ Add Time Frame</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <View style={[$divider, { backgroundColor: colors.separator }]} />
+          <TouchableOpacity
+            style={$addTfRow}
+            onPress={() => setShowAddModal(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={[$addTfText, { color: colors.tint }]}>+ Add Time Frame</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Motivation note */}
