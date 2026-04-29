@@ -32,10 +32,10 @@ import {
   CheckIcon,
   Cog6ToothIcon,
   MagnifyingGlassIcon,
-  PlusCircleIcon,
   PlusIcon,
   XMarkIcon,
 } from "react-native-heroicons/outline"
+import Svg, { Circle, Path } from "react-native-svg"
 
 import { AppIcon } from "@/components/AppIcon"
 import { Screen } from "@/components/Screen"
@@ -87,14 +87,89 @@ type RenderItem =
   | { type: "single"; app: BlockedApp }
   | { type: "group"; groupId: string; apps: BlockedApp[]; anchorApp: BlockedApp }
 
-// ---- Schedule Tag ----
+// ---- Stats Hero ----
 
-function ScheduleTag({ label, color }: { label: string; color: string }) {
+function StatsHero({
+  colors,
+}: {
+  colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
+}) {
+  const weeklyMins = [42, 78, 55, 134, 90, 18, 61]
+  const maxMins = Math.max(...weeklyMins)
+  const totalMins = weeklyMins.reduce((a, b) => a + b, 0)
+  const hh = Math.floor(totalMins / 60)
+  const mm = totalMins % 60
+  const today = new Date().getDay() // 0=Sun
+
   return (
-    <View style={[$scheduleTag, { backgroundColor: color }]}>
-      <Text style={$scheduleTagText} numberOfLines={1}>
-        {label}
-      </Text>
+    <View style={$statsHero}>
+      <View style={{ marginBottom: 4 }}>
+        <Text style={[$statsLabel, { color: colors.tintInactive }]}>Saved this week</Text>
+        <Text style={[$statsValue, { color: colors.text }]}>
+          {hh}h {mm}m
+        </Text>
+      </View>
+
+      <View style={$statsRow}>
+        <View style={$statItem}>
+          <Svg width={13} height={13} viewBox="0 0 13 13">
+            <Path
+              d="M6.5 1C6.5 1 9.5 3.5 9.5 6C9.5 7.1 9.0 8 8.2 8.6C8.3 8.1 8.2 7.5 7.9 7C7.4 8 6.5 8.5 6.5 9.5C6.5 10.6 7.3 11.5 8.2 11.9C7.7 12 7.1 12 6.5 12C4.0 12 2 10 2 7.5C2 4.5 6.5 1 6.5 1Z"
+              fill={colors.tint}
+            />
+          </Svg>
+          <Text style={[$statNumber, { color: colors.text }]}>12</Text>
+          <Text style={[$statUnit, { color: colors.tintInactive }]}>day streak</Text>
+        </View>
+        <View style={$statItem}>
+          <Svg width={13} height={13} viewBox="0 0 13 13">
+            <Circle cx="6.5" cy="6.5" r="5" stroke={colors.tint} strokeWidth="1.4" fill="none" />
+            <Path
+              d="M6.5 3.5v3l2 1.2"
+              stroke={colors.tint}
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
+          </Svg>
+          <Text style={[$statNumber, { color: colors.text }]}>2h 14m</Text>
+          <Text style={[$statUnit, { color: colors.tintInactive }]}>saved today</Text>
+        </View>
+      </View>
+
+      {/* Weekly bar chart */}
+      <View style={$chartBars}>
+        {weeklyMins.map((m, i) => (
+          <View
+            key={i}
+            style={[
+              $chartBar,
+              {
+                flex: 1,
+                height: m > 0 ? Math.max((m / maxMins) * 52, 4) : 3,
+                backgroundColor:
+                  i === today
+                    ? colors.tint
+                    : m > 0
+                      ? colors.tint + "55"
+                      : colors.separator,
+              },
+            ]}
+          />
+        ))}
+      </View>
+      <View style={$chartLabels}>
+        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+          <Text
+            key={i}
+            style={[
+              $chartLabel,
+              { flex: 1, color: i === today ? colors.tint : colors.tintInactive },
+            ]}
+          >
+            {d}
+          </Text>
+        ))}
+      </View>
     </View>
   )
 }
@@ -105,45 +180,33 @@ function AppCardContent({
   app,
   iconUrl,
   dimmed,
-  showBorder = true,
+  showSchedule = true,
   colors,
 }: {
   app: BlockedApp
   iconUrl?: string
   dimmed?: boolean
-  showBorder?: boolean
+  showSchedule?: boolean
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
   const { updateApp } = useAppBlock()
 
-  const tags: string[] = app.blockedForever
-    ? ["Always"]
-    : app.timeFrames.map(formatTimeFrame)
-
-  const hasTags = showBorder && tags.length > 0
-  const borderColor = hasTags ? app.accentColor : "transparent"
-  const topPad = hasTags ? tags.length * 18 + 4 : 0
+  const scheduleText = app.blockedForever
+    ? "Always blocked"
+    : app.timeFrames.length > 0
+      ? formatTimeFrame(app.timeFrames[0]) +
+        (app.timeFrames.length > 1 ? ` +${app.timeFrames.length - 1}` : "")
+      : null
 
   return (
     <View style={{ opacity: dimmed ? 0.35 : 1 }}>
-      {/* Tags sitting on top of the border — only shown for standalone cards */}
-      {hasTags && tags.map((label, i) => (
-        <View
-          key={i}
-          style={[$tagWrapper, { top: -(tags.length - i) * 18 }]}
-        >
-          <ScheduleTag label={label} color={app.accentColor} />
-        </View>
-      ))}
-
       <View
         style={[
           $card,
           {
             backgroundColor: colors.card,
-            borderColor,
-            borderWidth: hasTags ? 3 : 0,
-            paddingTop: 14,
+            borderColor: colors.border,
+            borderWidth: 1,
           },
         ]}
       >
@@ -153,11 +216,18 @@ function AppCardContent({
             initials={app.name.slice(0, 2).toUpperCase()}
             brandColor={app.brandColor ?? app.accentColor}
             iconUrl={iconUrl}
-            size={34}
+            size={36}
           />
-          <Text style={[$appName, { color: colors.text, flex: 1 }]} numberOfLines={1}>
-            {app.name}
-          </Text>
+          <View style={{ flex: 1, gap: showSchedule && scheduleText ? 2 : 0 }}>
+            <Text style={[$appName, { color: colors.text }]} numberOfLines={1}>
+              {app.name}
+            </Text>
+            {showSchedule && scheduleText && (
+              <Text style={[$scheduleSub, { color: colors.tintInactive }]} numberOfLines={1}>
+                {scheduleText}
+              </Text>
+            )}
+          </View>
           <Switch
             value={app.blockedForever}
             onValueChange={(v) => updateApp(app.id, { blockedForever: v })}
@@ -283,7 +353,7 @@ function DraggableAppCard({
             <View
               style={[
                 isDropTarget && {
-                  borderRadius: 18,
+                  borderRadius: 16,
                   borderWidth: 2,
                   borderColor: app.accentColor,
                   borderStyle: "dashed",
@@ -294,7 +364,7 @@ function DraggableAppCard({
                 app={app}
                 iconUrl={iconUrl}
                 dimmed={anyDragging && !isDraggingThis && !isDropTarget}
-                showBorder={!isGrouped}
+                showSchedule={!isGrouped}
                 colors={colors}
               />
             </View>
@@ -336,35 +406,49 @@ function GroupContainer({
   registerLayout: (appId: string, layout: { y: number; height: number }) => void
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
-  const tags: string[] = anchorApp.blockedForever
-    ? ["Always"]
-    : anchorApp.timeFrames.map(formatTimeFrame)
+  const label = anchorApp.blockedForever
+    ? "Always"
+    : anchorApp.timeFrames.length > 0
+      ? formatDays(anchorApp.timeFrames[0].days)
+      : "Group"
 
-  const borderColor = anchorApp.accentColor
+  const timeRange =
+    !anchorApp.blockedForever && anchorApp.timeFrames.length > 0
+      ? `${formatTime(anchorApp.timeFrames[0].startTime)}–${formatTime(anchorApp.timeFrames[0].endTime)}`
+      : null
 
   return (
-    <View style={[$groupOuter, { marginTop: tags.length > 0 ? tags.length * 18 : 0 }]}>
-      {/* Group-level tags */}
-      {tags.map((label, i) => (
-        <View
-          key={i}
-          style={[
-            $tagWrapper,
-            { top: -(tags.length - i) * 18, left: 12 },
-          ]}
-        >
-          <ScheduleTag label={label} color={borderColor} />
-        </View>
-      ))}
-
+    <View style={$groupOuter}>
       <View
         style={[
           $groupContainer,
-          { borderColor },
+          { borderColor: colors.accentBorder },
         ]}
       >
-        {groupApps.map((app) => (
-          <View key={app.id}>
+        {/* Header strip */}
+        <View style={[$groupHeader, { backgroundColor: colors.accentBg }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text style={[$groupLabel, { color: colors.tint }]}>{label}</Text>
+            {anchorApp.blockedForever && (
+              <Text style={[$groupActive, { color: colors.tint }]}>Active</Text>
+            )}
+            {timeRange && (
+              <Text style={[$groupTime, { color: colors.tintInactive }]}>{timeRange}</Text>
+            )}
+          </View>
+          <Text style={[$groupCount, { color: colors.tintInactive }]}>
+            {groupApps.length} app{groupApps.length !== 1 ? "s" : ""}
+          </Text>
+        </View>
+
+        {/* App rows */}
+        {groupApps.map((app, idx) => (
+          <View key={app.id} style={{ backgroundColor: colors.card }}>
+            {idx > 0 && (
+              <View
+                style={[$groupDivider, { backgroundColor: colors.separator }]}
+              />
+            )}
             <DraggableAppCard
               app={app}
               iconUrl={iconUrlByName[app.name]}
@@ -388,7 +472,7 @@ function GroupContainer({
 
 // ---- App Picker Sheet ----
 
-const SHEET_HEIGHT = Dimensions.get("window").height * 0.68
+const SHEET_HEIGHT = Dimensions.get("window").height * 0.72
 
 function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { addApp, apps } = useAppBlock()
@@ -414,23 +498,36 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
       <View
         style={[
           $pickerSheet,
-          { backgroundColor: colors.card, paddingBottom: insets.bottom + 16, height: SHEET_HEIGHT },
+          { backgroundColor: colors.background, paddingBottom: insets.bottom + 16, height: SHEET_HEIGHT },
         ]}
       >
+        {/* Handle */}
         <View style={[$modalHandle, { backgroundColor: colors.border }]} />
+
+        {/* Header */}
         <View style={$pickerHeader}>
           <Text style={[$modalTitle, { color: colors.text }]}>Block an App</Text>
-          <TouchableOpacity onPress={handleClose} hitSlop={12}>
-            <XMarkIcon size={22} color={colors.textDim} strokeWidth={2} />
+          <TouchableOpacity
+            onPress={handleClose}
+            hitSlop={12}
+            style={[$doneBtn, { backgroundColor: colors.accentBg }]}
+          >
+            <Text style={[$doneBtnText, { color: colors.tint }]}>Done</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={[$searchBar, { backgroundColor: colors.cardElevated, borderColor: colors.border }]}>
-          <MagnifyingGlassIcon size={16} color={colors.textDim} strokeWidth={2} />
+        {/* Search */}
+        <View
+          style={[
+            $searchBar,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <MagnifyingGlassIcon size={15} color={colors.tintInactive} strokeWidth={2} />
           <TextInput
             style={[$searchInput, { color: colors.text }]}
             placeholder="Search apps…"
-            placeholderTextColor={colors.textDim}
+            placeholderTextColor={colors.tintInactive}
             value={query}
             onChangeText={setQuery}
             autoCorrect={false}
@@ -444,43 +541,57 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
             <ActivityIndicator color={colors.tint} />
           </View>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            {filtered.map((item) => {
-              const alreadyAdded = addedNames.has(item.name)
-              return (
-                <View key={item.id} style={[$pickerRow, { borderBottomColor: colors.border }]}>
-                  <AppIcon
-                    name={item.name}
-                    initials={item.initials}
-                    brandColor={item.brandColor}
-                    iconUrl={iconUrls[item.id]}
-                    size={36}
-                  />
-                  <Text style={[$pickerName, { color: colors.text }]} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      $pickerAddBtn,
-                      alreadyAdded
-                        ? { backgroundColor: colors.cardElevated }
-                        : { backgroundColor: colors.tint + "22" },
-                    ]}
-                    onPress={() => {
-                      if (!alreadyAdded) addApp(item.name, item.brandColor)
-                    }}
-                    disabled={alreadyAdded}
-                    activeOpacity={0.6}
-                  >
-                    {alreadyAdded ? (
-                      <CheckIcon size={18} color={colors.textDim} strokeWidth={2} />
-                    ) : (
-                      <PlusIcon size={18} color={colors.tint} strokeWidth={2.5} />
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            style={{ marginHorizontal: -20 }}
+          >
+            <View
+              style={[
+                $pickerList,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              {filtered.map((item, idx) => {
+                const alreadyAdded = addedNames.has(item.name)
+                return (
+                  <View key={item.id}>
+                    {idx > 0 && (
+                      <View style={[$pickerDivider, { backgroundColor: colors.separator }]} />
                     )}
-                  </TouchableOpacity>
-                </View>
-              )
-            })}
+                    <View style={$pickerRow}>
+                      <AppIcon
+                        name={item.name}
+                        initials={item.initials}
+                        brandColor={item.brandColor}
+                        iconUrl={iconUrls[item.id]}
+                        size={36}
+                      />
+                      <Text style={[$pickerName, { color: colors.text }]} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <TouchableOpacity
+                        style={[
+                          $pickerCheck,
+                          alreadyAdded
+                            ? { backgroundColor: colors.tint }
+                            : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1.5 },
+                        ]}
+                        onPress={() => {
+                          if (!alreadyAdded) addApp(item.name, item.brandColor)
+                        }}
+                        disabled={alreadyAdded}
+                        activeOpacity={0.6}
+                      >
+                        {alreadyAdded && (
+                          <CheckIcon size={14} color="#fff" strokeWidth={2.5} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )
+              })}
+            </View>
           </ScrollView>
         )}
       </View>
@@ -512,7 +623,7 @@ function GhostCard({
     transform: [{ scale: 1.04 }],
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 24,
   }))
@@ -560,7 +671,6 @@ export function AppsScreen() {
 
   const onDragStart = useCallback(
     (appId: string, screenX: number, screenY: number, _w: number, _h: number) => {
-      // Measure ghost container to get offset
       ghostContainerRef.current?.measureInWindow((cx, cy) => {
         ghostContainerOffset.current = { x: cx, y: cy }
         const layout = cardLayouts.current[appId]
@@ -584,7 +694,6 @@ export function AppsScreen() {
       let found: string | null = null
       for (const [id, layout] of Object.entries(cardLayouts.current)) {
         if (id === draggingId) continue
-        // layout.y and screenY are both screen-absolute from measure/absoluteY
         if (screenY >= layout.y && screenY <= layout.y + layout.height) {
           found = id
           break
@@ -604,7 +713,6 @@ export function AppsScreen() {
     setDragTargetId(null)
   }, [dragState, dragTargetId, groupApps])
 
-  // Build render items (preserve insertion order, group by groupId)
   const renderItems = useMemo((): RenderItem[] => {
     const seenGroups = new Set<string>()
     const result: RenderItem[] = []
@@ -625,19 +733,20 @@ export function AppsScreen() {
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark">
+      {/* Header */}
       <View style={[$header, { paddingHorizontal: spacing.md }]}>
-        <View style={$headerLeft}>
-          <TouchableOpacity style={$iconBtn} activeOpacity={0.7}>
-            <Cog6ToothIcon size={24} color={colors.text} strokeWidth={1.5} />
+        <Text style={[$appTitle, { color: colors.text }]}>sami</Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity
+            style={[$navIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            activeOpacity={0.7}
+          >
+            <Cog6ToothIcon size={16} color={colors.tintInactive} strokeWidth={2} />
           </TouchableOpacity>
-          <Text style={[$appTitle, { color: colors.text }]}>sami</Text>
         </View>
-        <TouchableOpacity onPress={() => setShowModal(true)} style={$iconBtn} activeOpacity={0.7}>
-          <PlusCircleIcon size={30} color={colors.tint} strokeWidth={1.5} />
-        </TouchableOpacity>
       </View>
 
-      {/* Invisible anchor for measuring coordinate space */}
+      {/* Invisible coordinate anchor */}
       <View
         ref={ghostContainerRef}
         style={$measureAnchor}
@@ -652,7 +761,19 @@ export function AppsScreen() {
       {apps.length === 0 ? (
         <View style={$empty}>
           <Text style={[$emptyTitle, { color: colors.text }]}>No apps blocked</Text>
-          <Text style={[$emptySubtitle, { color: colors.textDim }]}>Tap + to block your first app</Text>
+          <Text style={[$emptySubtitle, { color: colors.tintInactive }]}>
+            Tap + to block your first app
+          </Text>
+          <TouchableOpacity
+            style={[$addButton, { backgroundColor: colors.tint }]}
+            onPress={() => setShowModal(true)}
+            activeOpacity={0.85}
+          >
+            <View style={$addButtonInner}>
+              <PlusIcon size={15} color="#FFFFFF" strokeWidth={2.5} />
+              <Text style={$addButtonText}>Block an App</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
@@ -663,13 +784,15 @@ export function AppsScreen() {
             { paddingBottom: insets.bottom + 24, paddingHorizontal: spacing.md },
           ]}
         >
+          {/* Stats hero */}
+          <StatsHero colors={colors} />
+
+          {/* App list */}
           {renderItems.map((item) => {
             if (item.type === "single") {
               const app = item.app
-              const hasSchedule = app.blockedForever || app.timeFrames.length > 0
-              const tagCount = app.blockedForever ? 1 : app.timeFrames.length
               return (
-                <View key={app.id} style={{ marginTop: hasSchedule ? tagCount * 18 : 0 }}>
+                <View key={app.id}>
                   <DraggableAppCard
                     app={app}
                     iconUrl={iconUrlByName[app.name]}
@@ -706,6 +829,18 @@ export function AppsScreen() {
               />
             )
           })}
+
+          {/* Bottom CTA */}
+          <TouchableOpacity
+            style={[$addButton, { backgroundColor: colors.tint }]}
+            onPress={() => setShowModal(true)}
+            activeOpacity={0.85}
+          >
+            <View style={$addButtonInner}>
+              <PlusIcon size={15} color="#FFFFFF" strokeWidth={2.5} />
+              <Text style={$addButtonText}>Block an App</Text>
+            </View>
+          </TouchableOpacity>
         </ScrollView>
       )}
 
@@ -733,28 +868,88 @@ const $header: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
-  paddingVertical: 12,
-}
-
-const $headerLeft: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 10,
-}
-
-const $iconBtn: ViewStyle = {
-  alignItems: "center",
-  justifyContent: "center",
+  paddingVertical: 8,
 }
 
 const $appTitle: TextStyle = {
   fontSize: 22,
   lineHeight: 22,
-  fontWeight: "700",
   fontFamily: "spaceGroteskBold",
   letterSpacing: -0.6,
   includeFontPadding: false,
+}
+
+const $navIconBtn: ViewStyle = {
+  width: 32,
+  height: 32,
+  borderRadius: 9,
+  borderWidth: 1,
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const $statsHero: ViewStyle = {
+  paddingBottom: 22,
+}
+
+const $statsLabel: TextStyle = {
+  fontSize: 11,
+  fontFamily: "spaceGroteskSemiBold",
+  letterSpacing: 0.5,
+  textTransform: "uppercase",
+  marginBottom: 4,
+}
+
+const $statsValue: TextStyle = {
+  fontSize: 28,
+  letterSpacing: -1,
+  lineHeight: 32,
+  fontFamily: "spaceGroteskBold",
+}
+
+const $statsRow: ViewStyle = {
+  flexDirection: "row",
+  gap: 20,
   marginTop: 4,
+  marginBottom: 18,
+}
+
+const $statItem: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 5,
+}
+
+const $statNumber: TextStyle = {
+  fontSize: 13,
+  fontFamily: "spaceGroteskSemiBold",
+}
+
+const $statUnit: TextStyle = {
+  fontSize: 12,
+}
+
+const $chartBars: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "flex-end",
+  gap: 5,
+  height: 52,
+}
+
+const $chartBar: ViewStyle = {
+  borderRadius: 4,
+}
+
+const $chartLabels: ViewStyle = {
+  flexDirection: "row",
+  gap: 5,
+  marginTop: 6,
+}
+
+const $chartLabel: TextStyle = {
+  textAlign: "center",
+  fontSize: 10,
+  fontFamily: "spaceGroteskSemiBold",
 }
 
 const $listContent: ViewStyle = {
@@ -765,8 +960,12 @@ const $listContent: ViewStyle = {
 const $card: ViewStyle = {
   borderRadius: 16,
   paddingHorizontal: 14,
-  paddingBottom: 14,
-  paddingTop: 14,
+  paddingVertical: 13,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.04,
+  shadowRadius: 3,
+  elevation: 1,
 }
 
 const $cardRow: ViewStyle = {
@@ -777,27 +976,11 @@ const $cardRow: ViewStyle = {
 
 const $appName: TextStyle = {
   fontSize: 14,
-  fontWeight: "500",
+  fontFamily: "spaceGroteskMedium",
 }
 
-const $tagWrapper: ViewStyle = {
-  position: "absolute",
-  left: 12,
-  zIndex: 10,
-  maxWidth: 100,
-}
-
-const $scheduleTag: ViewStyle = {
-  paddingHorizontal: 7,
-  paddingVertical: 3,
-  borderRadius: 20,
-}
-
-const $scheduleTagText: TextStyle = {
-  fontSize: 9,
-  fontWeight: "700",
-  color: "#FFFFFF",
-  letterSpacing: 0.2,
+const $scheduleSub: TextStyle = {
+  fontSize: 11,
 }
 
 const $groupOuter: ViewStyle = {
@@ -805,10 +988,45 @@ const $groupOuter: ViewStyle = {
 }
 
 const $groupContainer: ViewStyle = {
-  borderWidth: 3,
-  borderRadius: 18,
-  padding: 8,
-  gap: 8,
+  borderWidth: 1.5,
+  borderRadius: 14,
+  overflow: "hidden",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.04,
+  shadowRadius: 3,
+  elevation: 1,
+}
+
+const $groupHeader: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingHorizontal: 14,
+  paddingVertical: 10,
+}
+
+const $groupLabel: TextStyle = {
+  fontSize: 12,
+  fontFamily: "spaceGroteskBold",
+}
+
+const $groupActive: TextStyle = {
+  fontSize: 11,
+  fontFamily: "spaceGroteskBold",
+}
+
+const $groupTime: TextStyle = {
+  fontSize: 11,
+}
+
+const $groupCount: TextStyle = {
+  fontSize: 11,
+}
+
+const $groupDivider: ViewStyle = {
+  height: 1,
+  marginHorizontal: 14,
 }
 
 const $empty: ViewStyle = {
@@ -816,33 +1034,62 @@ const $empty: ViewStyle = {
   alignItems: "center",
   justifyContent: "center",
   gap: 8,
+  paddingHorizontal: 32,
 }
 
 const $emptyTitle: TextStyle = {
   fontSize: 20,
-  fontWeight: "700",
+  fontFamily: "spaceGroteskBold",
 }
 
 const $emptySubtitle: TextStyle = {
   fontSize: 15,
+  textAlign: "center",
+  marginBottom: 24,
+}
+
+const $addButton: ViewStyle = {
+  borderRadius: 14,
+  paddingVertical: 15,
+  alignItems: "center",
+  justifyContent: "center",
+  shadowColor: "#2E7D52",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 8,
+  elevation: 3,
+}
+
+const $addButtonInner: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+}
+
+const $addButtonText: TextStyle = {
+  fontSize: 15,
+  fontFamily: "spaceGroteskMedium",
+  color: "#FFFFFF",
+  letterSpacing: -0.2,
 }
 
 const $modalHandle: ViewStyle = {
-  width: 40,
+  width: 36,
   height: 4,
   borderRadius: 2,
   alignSelf: "center",
-  marginBottom: 8,
+  marginBottom: 12,
 }
 
 const $modalTitle: TextStyle = {
-  fontSize: 20,
-  fontWeight: "700",
+  fontSize: 17,
+  fontFamily: "spaceGroteskBold",
+  letterSpacing: -0.4,
 }
 
 const $pickerOverlay: ViewStyle = {
   flex: 1,
-  backgroundColor: "rgba(0,0,0,0.4)",
+  backgroundColor: "rgba(0,0,0,0.3)",
 }
 
 const $pickerSheet: ViewStyle = {
@@ -863,29 +1110,53 @@ const $pickerHeader: ViewStyle = {
   marginBottom: 14,
 }
 
+const $doneBtn: ViewStyle = {
+  paddingHorizontal: 14,
+  paddingVertical: 6,
+  borderRadius: 20,
+}
+
+const $doneBtnText: TextStyle = {
+  fontSize: 14,
+  fontFamily: "spaceGroteskSemiBold",
+}
+
 const $searchBar: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
-  borderRadius: 12,
+  borderRadius: 11,
   borderWidth: 1,
   paddingHorizontal: 12,
   paddingVertical: Platform.OS === "ios" ? 10 : 6,
   gap: 8,
-  marginBottom: 8,
+  marginBottom: 12,
 }
 
 const $searchInput: TextStyle = {
   flex: 1,
-  fontSize: 15,
+  fontSize: 14,
   padding: 0,
+}
+
+const $pickerList: ViewStyle = {
+  marginHorizontal: 20,
+  borderRadius: 14,
+  borderWidth: 1,
+  overflow: "hidden",
+  marginBottom: 8,
 }
 
 const $pickerRow: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   paddingVertical: 10,
+  paddingHorizontal: 14,
   gap: 12,
-  borderBottomWidth: 0.5,
+}
+
+const $pickerDivider: ViewStyle = {
+  height: 1,
+  marginHorizontal: 14,
 }
 
 const $pickerLoading: ViewStyle = {
@@ -896,14 +1167,14 @@ const $pickerLoading: ViewStyle = {
 
 const $pickerName: TextStyle = {
   flex: 1,
-  fontSize: 15,
-  fontWeight: "600",
+  fontSize: 14,
+  fontFamily: "spaceGroteskMedium",
 }
 
-const $pickerAddBtn: ViewStyle = {
-  width: 36,
-  height: 36,
-  borderRadius: 10,
+const $pickerCheck: ViewStyle = {
+  width: 24,
+  height: 24,
+  borderRadius: 7,
   alignItems: "center",
   justifyContent: "center",
 }

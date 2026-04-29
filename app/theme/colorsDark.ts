@@ -21,6 +21,9 @@ const palette = {
   secondary500: "#41476E",
   accent100: "#2C2C2C",
 
+  darkAccentBg:     "#1B2E23",
+  darkAccentBorder: "#2E5040",
+
   angry100: "#F2D6CD",
   angry500: "#C03403",
 
@@ -42,4 +45,6 @@ export const colors = {
   separator: palette.neutral700,
   error: palette.angry500,
   errorBackground: palette.angry100,
+  accentBg:       palette.darkAccentBg,
+  accentBorder:   palette.darkAccentBorder,
 } as const

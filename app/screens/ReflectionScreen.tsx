@@ -181,7 +181,7 @@ const $titleBlock: ViewStyle = {
 
 const $headline: TextStyle = {
   fontSize: 26,
-  fontWeight: "800",
+  fontFamily: "spaceGroteskBold",
 }
 
 const $subheadline: TextStyle = {
@@ -196,7 +196,7 @@ const $section: ViewStyle = {
 
 const $label: TextStyle = {
   fontSize: 13,
-  fontWeight: "600",
+  fontFamily: "spaceGroteskSemiBold",
   letterSpacing: 0.5,
 }
 
@@ -222,7 +222,7 @@ const $scoreBtn: ViewStyle = {
 
 const $scoreBtnNum: TextStyle = {
   fontSize: 16,
-  fontWeight: "700",
+  fontFamily: "spaceGroteskBold",
 }
 
 const $scoreDesc: TextStyle = {
@@ -243,7 +243,7 @@ const $toggleOpt: ViewStyle = {
 
 const $toggleOptText: TextStyle = {
   fontSize: 15,
-  fontWeight: "600",
+  fontFamily: "spaceGroteskSemiBold",
 }
 
 const $noteInput: TextStyle = {
@@ -262,5 +262,5 @@ const $submitBtn: ViewStyle = {
 const $submitBtnText: TextStyle = {
   color: "#000",
   fontSize: 16,
-  fontWeight: "700",
+  fontFamily: "spaceGroteskBold",
 }

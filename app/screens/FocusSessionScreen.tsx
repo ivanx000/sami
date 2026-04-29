@@ -243,7 +243,7 @@ const $workingLabel: TextStyle = {
 
 const $goalName: TextStyle = {
   fontSize: 24,
-  fontWeight: "800",
+  fontFamily: "spaceGroteskBold",
   textAlign: "center",
 }
 
@@ -269,7 +269,7 @@ const $timerCenter: ViewStyle = {
 
 const $timerText: TextStyle = {
   fontSize: 52,
-  fontWeight: "200",
+  fontFamily: "spaceGroteskLight",
   letterSpacing: -2,
   fontVariant: ["tabular-nums"],
 }
@@ -311,7 +311,7 @@ const $toggleBtn: ViewStyle = {
 
 const $toggleBtnText: TextStyle = {
   fontSize: 16,
-  fontWeight: "600",
+  fontFamily: "spaceGroteskSemiBold",
 }
 
 const $endBtn: ViewStyle = {
@@ -324,5 +324,5 @@ const $endBtn: ViewStyle = {
 
 const $endBtnText: TextStyle = {
   fontSize: 16,
-  fontWeight: "600",
+  fontFamily: "spaceGroteskSemiBold",
 }

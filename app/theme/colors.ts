@@ -7,8 +7,10 @@ const palette = {
   warmBorderSub:    '#EDE9E2',
   warmText:         '#1A1714',
   warmTextDim:      '#8A7F72',
-  warmTextFaint:    '#BAB2A6',
+  warmTextFaint:    '#A8A09A',
   warmAccent:       '#2E7D52',
+  warmAccentBg:     '#EDF5F0',
+  warmAccentBorder: '#C3DCCB',
   warmDanger:       '#C0392B',
   warmDangerBg:     '#FDF1F0',
 
@@ -58,6 +60,8 @@ export const colors = {
   tint:           palette.warmAccent,
   tintInactive:   palette.warmTextFaint,
   separator:      palette.warmBorderSub,
+  accentBg:       palette.warmAccentBg,
+  accentBorder:   palette.warmAccentBorder,
   error:          palette.warmDanger,
   errorBackground:palette.warmDangerBg,
 } as const

@@ -1,10 +1,10 @@
 import { useState } from "react"
 import {
   Alert,
-  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  ScrollView,
   Switch,
   TextInput,
   TouchableOpacity,
@@ -13,7 +13,9 @@ import {
   TextStyle,
 } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { ChevronLeftIcon } from "react-native-heroicons/outline"
 
+import { AppIcon } from "@/components/AppIcon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
@@ -69,6 +71,78 @@ function hasOverlap(
     })
 }
 
+// ---- Usage Chart ----
+
+function UsageChart({
+  timeFrames,
+  colors,
+}: {
+  timeFrames: TimeFrame[]
+  colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
+}) {
+  // Days Sun-Sat (0-6), check which are blocked
+  const blockedDays = new Set(timeFrames.flatMap((tf) => tf.days))
+  const usageHours = [2.1, 0.4, 1.8, 0.0, 1.5, 3.2, 2.8]
+  const maxH = Math.max(...usageHours)
+  const dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
+
+  return (
+    <View
+      style={[
+        $chartCard,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <Text style={[$sectionLabel, { color: colors.tintInactive }]}>Usage this week</Text>
+      <View style={$usageBars}>
+        {usageHours.map((h, i) => (
+          <View
+            key={i}
+            style={[
+              $usageBar,
+              {
+                flex: 1,
+                height: h > 0 ? Math.max((h / maxH) * 56, 4) : 3,
+                backgroundColor: blockedDays.has(i) ? colors.tint : colors.tintInactive,
+                opacity: blockedDays.has(i) ? 0.7 : 0.35,
+              },
+            ]}
+          />
+        ))}
+      </View>
+      <View style={$usageBarLabels}>
+        {dayLabels.map((d, i) => (
+          <Text
+            key={i}
+            style={[
+              $usageBarLabel,
+              { flex: 1, color: blockedDays.has(i) ? colors.tint : colors.tintInactive },
+            ]}
+          >
+            {d}
+          </Text>
+        ))}
+      </View>
+      {/* Legend */}
+      <View style={{ flexDirection: "row", gap: 14, marginTop: 10 }}>
+        {[
+          { color: colors.tint, label: "Blocked days" },
+          { color: colors.tintInactive, label: "Open days" },
+        ].map((x) => (
+          <View key={x.label} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <View
+              style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: x.color, opacity: 0.7 }}
+            />
+            <Text style={{ fontSize: 10, color: colors.tintInactive }}>{x.label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  )
+}
+
+// ---- Time Frame Row ----
+
 function TimeFrameRow({
   tf,
   accentColor,
@@ -83,20 +157,22 @@ function TimeFrameRow({
   } = useAppTheme()
 
   return (
-    <View style={[$tfRow, { backgroundColor: colors.card }]}>
+    <View style={[$tfRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={[$tfAccent, { backgroundColor: accentColor }]} />
       <View style={$tfContent}>
         <Text style={[$tfDays, { color: colors.text }]}>{formatDays(tf.days)}</Text>
-        <Text style={[$tfTime, { color: colors.textDim }]}>
+        <Text style={[$tfTime, { color: colors.tintInactive }]}>
           {formatTime(tf.startTime)} – {formatTime(tf.endTime)}
         </Text>
       </View>
       <TouchableOpacity onPress={onDelete} hitSlop={8}>
-        <Text style={[$tfDeleteText, { color: colors.textDim }]}>✕</Text>
+        <Text style={[$tfDeleteText, { color: colors.tintInactive }]}>✕</Text>
       </TouchableOpacity>
     </View>
   )
 }
+
+// ---- Add Time Frame Modal ----
 
 function AddTimeFrameModal({
   visible,
@@ -172,7 +248,7 @@ function AddTimeFrameModal({
           <View style={[$modalHandle, { backgroundColor: colors.border }]} />
           <Text style={[$modalTitle, { color: colors.text }]}>Add Time Frame</Text>
 
-          <Text style={[$tfInputLabel, { color: colors.textDim }]}>Days</Text>
+          <Text style={[$tfInputLabel, { color: colors.tintInactive }]}>Days</Text>
           <View style={$dayRow}>
             {DAY_LABELS.map((label, i) => {
               const selected = selectedDays.includes(i)
@@ -188,7 +264,7 @@ function AddTimeFrameModal({
                   ]}
                   onPress={() => toggleDay(i)}
                 >
-                  <Text style={[$dayChipText, { color: selected ? "#fff" : colors.textDim }]}>
+                  <Text style={[$dayChipText, { color: selected ? "#fff" : colors.tintInactive }]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
@@ -198,7 +274,7 @@ function AddTimeFrameModal({
 
           <View style={$timeRow}>
             <View style={$timeField}>
-              <Text style={[$tfInputLabel, { color: colors.textDim }]}>Start</Text>
+              <Text style={[$tfInputLabel, { color: colors.tintInactive }]}>Start</Text>
               <TextInput
                 style={[
                   $timeInput,
@@ -214,14 +290,14 @@ function AddTimeFrameModal({
                   setError("")
                 }}
                 placeholder="09:00"
-                placeholderTextColor={colors.textDim}
+                placeholderTextColor={colors.tintInactive}
                 keyboardType="numbers-and-punctuation"
                 returnKeyType="next"
               />
             </View>
-            <Text style={[$timeSep, { color: colors.textDim }]}>–</Text>
+            <Text style={[$timeSep, { color: colors.tintInactive }]}>–</Text>
             <View style={$timeField}>
-              <Text style={[$tfInputLabel, { color: colors.textDim }]}>End</Text>
+              <Text style={[$tfInputLabel, { color: colors.tintInactive }]}>End</Text>
               <TextInput
                 style={[
                   $timeInput,
@@ -237,7 +313,7 @@ function AddTimeFrameModal({
                   setError("")
                 }}
                 placeholder="17:00"
-                placeholderTextColor={colors.textDim}
+                placeholderTextColor={colors.tintInactive}
                 keyboardType="numbers-and-punctuation"
                 returnKeyType="done"
                 onSubmitEditing={handleAdd}
@@ -245,20 +321,20 @@ function AddTimeFrameModal({
             </View>
           </View>
 
-          {error ? <Text style={[$errorText, { color: "#FF6B6B" }]}>{error}</Text> : null}
+          {error ? <Text style={[$errorText, { color: colors.error }]}>{error}</Text> : null}
 
           <View style={$modalActions}>
             <TouchableOpacity
               style={[$modalBtn, { backgroundColor: colors.cardElevated }]}
               onPress={handleClose}
             >
-              <Text style={{ color: colors.textDim }}>Cancel</Text>
+              <Text style={{ color: colors.tintInactive }}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[$modalBtn, { backgroundColor: accentColor }]}
               onPress={handleAdd}
             >
-              <Text style={{ color: "#000", fontWeight: "700" }}>Add</Text>
+              <Text style={{ color: "#fff", fontFamily: "spaceGroteskBold" }}>Add</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -266,6 +342,8 @@ function AddTimeFrameModal({
     </Modal>
   )
 }
+
+// ---- Main Screen ----
 
 export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"AppDetail">) {
   const { appId } = route.params
@@ -297,93 +375,127 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
     ])
   }
 
+  const scheduleType = app.blockedForever
+    ? "Always"
+    : app.timeFrames.length > 0
+      ? "Scheduled"
+      : "No schedule"
+
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark">
+      {/* Top bar */}
       <View style={[$topBar, { paddingHorizontal: spacing.md }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={$backBtn}>
-          <Text style={[$backArrow, { color: colors.tint }]}>←</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={$backBtn} activeOpacity={0.7}>
+          <ChevronLeftIcon size={18} color={colors.tint} strokeWidth={2} />
+          <Text style={[$backText, { color: colors.tint }]}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleDelete}>
           <Text style={[$removeText, { color: colors.error }]}>Remove</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={[$appHero, { paddingHorizontal: spacing.md }]}>
-        <View style={[$accentLine, { backgroundColor: app.accentColor }]} />
-        <Text style={[$appName, { color: colors.text }]}>{app.name}</Text>
-      </View>
-
-      <View
-        style={[$foreverRow, { marginHorizontal: spacing.md, backgroundColor: colors.card }]}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          $scrollContent,
+          { paddingHorizontal: spacing.md, paddingBottom: insets.bottom + 32 },
+        ]}
       >
-        <View style={$foreverLeft}>
-          <Text style={[$foreverLabel, { color: colors.text }]}>Block Forever</Text>
-          <Text style={[$foreverSub, { color: colors.textDim }]}>
-            {app.blockedForever
-              ? "Blocked until you turn this off"
-              : "Always on, no schedule needed"}
-          </Text>
-        </View>
-        <Switch
-          value={app.blockedForever}
-          onValueChange={(v) => updateApp(appId, { blockedForever: v })}
-          trackColor={{ false: colors.cardElevated, true: colors.tint }}
-          ios_backgroundColor={colors.cardElevated}
-        />
-      </View>
-
-      {!app.blockedForever && (
-        <>
-          <Text
-            style={[$sectionTitle, { color: colors.textDim, paddingHorizontal: spacing.md }]}
-          >
-            SCHEDULE
-          </Text>
-          <FlatList
-            data={app.timeFrames}
-            keyExtractor={(tf) => tf.id}
-            renderItem={({ item }) => (
-              <TimeFrameRow
-                tf={item}
-                accentColor={app.accentColor}
-                onDelete={() => removeTimeFrame(appId, item.id)}
-              />
-            )}
-            contentContainerStyle={[
-              $listContent,
-              { paddingHorizontal: spacing.md, paddingBottom: insets.bottom + 24 },
-            ]}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <Text style={[$emptySchedule, { color: colors.textDim }]}>
-                No time frames set yet
-              </Text>
-            }
-            ListFooterComponent={
-              <TouchableOpacity
-                style={[
-                  $addTfBtn,
-                  {
-                    borderColor: app.accentColor + "66",
-                    backgroundColor: app.accentColor + "18",
-                  },
-                ]}
-                onPress={() => setShowAddModal(true)}
-              >
-                <Text style={[$addTfText, { color: app.accentColor }]}>+ Add Time Frame</Text>
-              </TouchableOpacity>
-            }
+        {/* App identity */}
+        <View style={$appHero}>
+          <AppIcon
+            name={app.name}
+            initials={app.name.slice(0, 2).toUpperCase()}
+            brandColor={app.brandColor ?? app.accentColor}
+            size={52}
           />
-        </>
-      )}
+          <View style={{ flex: 1 }}>
+            <Text style={[$appName, { color: colors.text }]}>{app.name}</Text>
+            <View style={[$categoryBadge, { backgroundColor: colors.cardElevated, borderColor: colors.border }]}>
+              <Text style={[$categoryText, { color: colors.tintInactive }]}>{scheduleType}</Text>
+            </View>
+          </View>
+        </View>
 
-      {app.blockedForever && (
-        <View style={$foreverMessage}>
-          <Text style={[$foreverMessageText, { color: colors.textDim }]}>
-            {"This app is blocked at all times.\nToggle off to set a schedule instead."}
+        {/* Usage chart */}
+        <UsageChart timeFrames={app.timeFrames} colors={colors} />
+
+        {/* Stats tiles */}
+        <View style={$statsTiles}>
+          {[
+            { val: "11.2h", label: "Saved this week" },
+            { val: "3.2h", label: "Used today" },
+            { val: "47", label: "Times blocked" },
+          ].map((s) => (
+            <View
+              key={s.label}
+              style={[$statTile, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <Text style={[$statTileVal, { color: colors.text }]}>{s.val}</Text>
+              <Text style={[$statTileLabel, { color: colors.tintInactive }]}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Block schedule section */}
+        <Text style={[$sectionTitle, { color: colors.tintInactive }]}>Block Schedule</Text>
+        <View style={[$scheduleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {/* Block Forever row */}
+          <View style={$scheduleRow}>
+            <View style={$scheduleRowLeft}>
+              <Text style={[$scheduleRowTitle, { color: colors.text }]}>Block Forever</Text>
+              <Text style={[$scheduleRowSub, { color: colors.tintInactive }]}>
+                {app.blockedForever ? "Blocked until you turn this off" : "Override all schedules"}
+              </Text>
+            </View>
+            <Switch
+              value={app.blockedForever}
+              onValueChange={(v) => updateApp(appId, { blockedForever: v })}
+              trackColor={{ false: colors.cardElevated, true: colors.tint }}
+              ios_backgroundColor={colors.cardElevated}
+            />
+          </View>
+
+          {!app.blockedForever && app.timeFrames.length > 0 && (
+            <>
+              <View style={[$divider, { backgroundColor: colors.separator }]} />
+              {app.timeFrames.map((tf, idx) => (
+                <View key={tf.id}>
+                  {idx > 0 && <View style={[$divider, { backgroundColor: colors.separator }]} />}
+                  <TimeFrameRow
+                    tf={tf}
+                    accentColor={app.accentColor}
+                    onDelete={() => removeTimeFrame(appId, tf.id)}
+                  />
+                </View>
+              ))}
+            </>
+          )}
+
+          {!app.blockedForever && (
+            <>
+              <View style={[$divider, { backgroundColor: colors.separator }]} />
+              <TouchableOpacity
+                style={$addTfRow}
+                onPress={() => setShowAddModal(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={[$addTfText, { color: colors.tint }]}>+ Add Time Frame</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        {/* Motivation note */}
+        <View
+          style={[$motivationCard, { backgroundColor: colors.accentBg, borderColor: colors.accentBorder }]}
+        >
+          <Text style={[$motivationTitle, { color: colors.tint }]}>Why you blocked this</Text>
+          <Text style={[$motivationText, { color: colors.text }]}>
+            "Stop mindless scrolling — be more present."
           </Text>
         </View>
-      )}
+      </ScrollView>
 
       <AddTimeFrameModal
         visible={showAddModal}
@@ -396,6 +508,8 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
   )
 }
 
+// ---- Styles ----
+
 const $topBar: ViewStyle = {
   flexDirection: "row",
   justifyContent: "space-between",
@@ -404,77 +518,176 @@ const $topBar: ViewStyle = {
 }
 
 const $backBtn: ViewStyle = {
-  padding: 4,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 2,
 }
 
-const $backArrow: TextStyle = {
-  fontSize: 22,
-  fontWeight: "600",
+const $backText: TextStyle = {
+  fontSize: 14,
+  fontFamily: "spaceGroteskSemiBold",
 }
 
 const $removeText: TextStyle = {
-  fontSize: 14,
+  fontSize: 13,
+  fontFamily: "spaceGroteskSemiBold",
+}
+
+const $scrollContent: ViewStyle = {
+  gap: 12,
+  paddingTop: 4,
 }
 
 const $appHero: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
   gap: 14,
-  paddingVertical: 16,
-}
-
-const $accentLine: ViewStyle = {
-  width: 4,
-  borderRadius: 2,
-  alignSelf: "stretch",
-  minHeight: 32,
+  paddingBottom: 8,
 }
 
 const $appName: TextStyle = {
-  flex: 1,
   fontSize: 22,
-  fontWeight: "800",
+  letterSpacing: -0.6,
+  marginBottom: 6,
+  fontFamily: "spaceGroteskBold",
 }
 
-const $foreverRow: ViewStyle = {
-  flexDirection: "row",
-  alignItems: "center",
+const $categoryBadge: ViewStyle = {
+  alignSelf: "flex-start",
+  paddingHorizontal: 8,
+  paddingVertical: 3,
+  borderRadius: 8,
+  borderWidth: 1,
+}
+
+const $categoryText: TextStyle = {
+  fontSize: 11,
+  fontFamily: "spaceGroteskSemiBold",
+}
+
+const $chartCard: ViewStyle = {
   borderRadius: 16,
   padding: 16,
-  marginBottom: 20,
+  borderWidth: 1,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.04,
+  shadowRadius: 3,
+  elevation: 1,
+}
+
+const $sectionLabel: TextStyle = {
+  fontSize: 11,
+  fontFamily: "spaceGroteskSemiBold",
+  letterSpacing: 0.5,
+  textTransform: "uppercase",
+  marginBottom: 14,
+}
+
+const $usageBars: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "flex-end",
+  gap: 5,
+  height: 56,
+}
+
+const $usageBar: ViewStyle = {
+  borderRadius: 4,
+}
+
+const $usageBarLabels: ViewStyle = {
+  flexDirection: "row",
+  gap: 5,
+  marginTop: 6,
+}
+
+const $usageBarLabel: TextStyle = {
+  textAlign: "center",
+  fontSize: 9,
+  fontFamily: "spaceGroteskSemiBold",
+}
+
+const $statsTiles: ViewStyle = {
+  flexDirection: "row",
+  gap: 8,
+}
+
+const $statTile: ViewStyle = {
+  flex: 1,
+  borderRadius: 12,
+  padding: 12,
+  alignItems: "center",
+  borderWidth: 1,
+  gap: 4,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.03,
+  shadowRadius: 2,
+  elevation: 1,
+}
+
+const $statTileVal: TextStyle = {
+  fontSize: 15,
+  fontFamily: "spaceGroteskBold",
+  letterSpacing: -0.3,
+}
+
+const $statTileLabel: TextStyle = {
+  fontSize: 9,
+  textAlign: "center",
+  lineHeight: 13,
+}
+
+const $sectionTitle: TextStyle = {
+  fontSize: 11,
+  fontFamily: "spaceGroteskBold",
+  letterSpacing: 0.8,
+  textTransform: "uppercase",
+  paddingLeft: 2,
+  marginBottom: -4,
+}
+
+const $scheduleCard: ViewStyle = {
+  borderRadius: 14,
+  overflow: "hidden",
+  borderWidth: 1,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.04,
+  shadowRadius: 3,
+  elevation: 1,
+}
+
+const $scheduleRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: 14,
+  paddingVertical: 14,
   gap: 12,
 }
 
-const $foreverLeft: ViewStyle = {
+const $scheduleRowLeft: ViewStyle = {
   flex: 1,
   gap: 2,
 }
 
-const $foreverLabel: TextStyle = {
-  fontSize: 16,
-  fontWeight: "700",
+const $scheduleRowTitle: TextStyle = {
+  fontSize: 14,
+  fontFamily: "spaceGroteskSemiBold",
 }
 
-const $foreverSub: TextStyle = {
-  fontSize: 13,
+const $scheduleRowSub: TextStyle = {
+  fontSize: 11,
 }
 
-const $sectionTitle: TextStyle = {
-  fontSize: 12,
-  fontWeight: "600",
-  letterSpacing: 1,
-  textTransform: "uppercase",
-  marginBottom: 10,
-}
-
-const $listContent: ViewStyle = {
-  gap: 8,
+const $divider: ViewStyle = {
+  height: 1,
+  marginHorizontal: 14,
 }
 
 const $tfRow: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
-  borderRadius: 12,
   overflow: "hidden",
   paddingRight: 14,
   gap: 14,
@@ -494,47 +707,45 @@ const $tfContent: ViewStyle = {
 
 const $tfDays: TextStyle = {
   fontSize: 14,
-  fontWeight: "600",
+  fontFamily: "spaceGroteskSemiBold",
 }
 
 const $tfTime: TextStyle = {
-  fontSize: 13,
+  fontSize: 12,
 }
 
 const $tfDeleteText: TextStyle = {
   fontSize: 16,
 }
 
-const $addTfBtn: ViewStyle = {
-  borderRadius: 12,
-  borderWidth: 1,
-  padding: 14,
+const $addTfRow: ViewStyle = {
+  paddingHorizontal: 14,
+  paddingVertical: 14,
   alignItems: "center",
-  marginTop: 4,
 }
 
 const $addTfText: TextStyle = {
   fontSize: 14,
-  fontWeight: "600",
+  fontFamily: "spaceGroteskSemiBold",
 }
 
-const $emptySchedule: TextStyle = {
-  fontSize: 14,
-  textAlign: "center",
-  paddingVertical: 16,
+const $motivationCard: ViewStyle = {
+  borderRadius: 14,
+  padding: 14,
+  borderWidth: 1,
 }
 
-const $foreverMessage: ViewStyle = {
-  flex: 1,
-  alignItems: "center",
-  justifyContent: "center",
-  paddingHorizontal: 32,
+const $motivationTitle: TextStyle = {
+  fontSize: 11,
+  fontFamily: "spaceGroteskBold",
+  letterSpacing: 0.3,
+  marginBottom: 5,
 }
 
-const $foreverMessageText: TextStyle = {
-  fontSize: 15,
-  textAlign: "center",
-  lineHeight: 24,
+const $motivationText: TextStyle = {
+  fontSize: 13,
+  lineHeight: 20,
+  fontStyle: "italic",
 }
 
 const $modalOverlay: ViewStyle = {
@@ -559,7 +770,7 @@ const $modalHandle: ViewStyle = {
 
 const $modalTitle: TextStyle = {
   fontSize: 20,
-  fontWeight: "700",
+  fontFamily: "spaceGroteskBold",
   marginBottom: 4,
 }
 
@@ -584,7 +795,7 @@ const $dayChip: ViewStyle = {
 
 const $dayChipText: TextStyle = {
   fontSize: 12,
-  fontWeight: "600",
+  fontFamily: "spaceGroteskSemiBold",
 }
 
 const $timeRow: ViewStyle = {
