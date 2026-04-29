@@ -485,7 +485,7 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   const [activeCategory, setActiveCategory] = useState("All")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { apps: installedApps, loading } = useInstalledApps()
-  const iconUrls = useAppIcons(installedApps)
+  const iconUrls = useAppIcons(CURATED_APPS)
 
   const blockedNames = useMemo(() => new Set(apps.map((a) => a.name)), [apps])
 
