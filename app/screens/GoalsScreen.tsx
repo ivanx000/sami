@@ -161,7 +161,7 @@ function AppCardContent({
           <Switch
             value={app.blockedForever}
             onValueChange={(v) => updateApp(app.id, { blockedForever: v })}
-            trackColor={{ false: colors.cardElevated, true: "#007AFF" }}
+            trackColor={{ false: colors.cardElevated, true: colors.tint }}
             ios_backgroundColor={colors.cardElevated}
           />
         </View>
@@ -624,16 +624,16 @@ export function AppsScreen() {
   const ghostApp = dragState ? apps.find((a) => a.id === dragState.appId) : null
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="light">
+    <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark">
       <View style={[$header, { paddingHorizontal: spacing.md }]}>
         <View style={$headerLeft}>
           <TouchableOpacity style={$iconBtn} activeOpacity={0.7}>
-            <Cog6ToothIcon size={26} color="#FFFFFF" strokeWidth={1.5} />
+            <Cog6ToothIcon size={24} color={colors.text} strokeWidth={1.5} />
           </TouchableOpacity>
-          <Text style={$appTitle}>sami</Text>
+          <Text style={[$appTitle, { color: colors.text }]}>sami</Text>
         </View>
         <TouchableOpacity onPress={() => setShowModal(true)} style={$iconBtn} activeOpacity={0.7}>
-          <PlusCircleIcon size={32} color="#FFFFFF" strokeWidth={1.5} />
+          <PlusCircleIcon size={30} color={colors.tint} strokeWidth={1.5} />
         </TouchableOpacity>
       </View>
 
@@ -748,14 +748,13 @@ const $iconBtn: ViewStyle = {
 }
 
 const $appTitle: TextStyle = {
-  fontSize: 28,
-  lineHeight: 28,
+  fontSize: 22,
+  lineHeight: 22,
   fontWeight: "700",
   fontFamily: "spaceGroteskBold",
-  color: "#FFFFFF",
-  letterSpacing: -0.5,
+  letterSpacing: -0.6,
   includeFontPadding: false,
-  marginTop: 6,
+  marginTop: 4,
 }
 
 const $listContent: ViewStyle = {
@@ -777,8 +776,8 @@ const $cardRow: ViewStyle = {
 }
 
 const $appName: TextStyle = {
-  fontSize: 16,
-  fontWeight: "700",
+  fontSize: 14,
+  fontWeight: "500",
 }
 
 const $tagWrapper: ViewStyle = {

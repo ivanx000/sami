@@ -62,7 +62,7 @@ export function App() {
       <KeyboardProvider>
         <AuthProvider>
           <AppBlockProvider>
-            <ThemeProvider>
+            <ThemeProvider initialContext="light">
               <AppNavigator
                 linking={{ prefixes: [prefix], config }}
                 initialState={initialNavigationState}

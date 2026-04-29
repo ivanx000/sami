@@ -188,7 +188,7 @@ function AddTimeFrameModal({
                   ]}
                   onPress={() => toggleDay(i)}
                 >
-                  <Text style={[$dayChipText, { color: selected ? "#000" : colors.textDim }]}>
+                  <Text style={[$dayChipText, { color: selected ? "#fff" : colors.textDim }]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
@@ -298,13 +298,13 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
   }
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="light">
+    <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark">
       <View style={[$topBar, { paddingHorizontal: spacing.md }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={$backBtn}>
           <Text style={[$backArrow, { color: colors.tint }]}>←</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleDelete}>
-          <Text style={[$removeText, { color: "#FF6B6B" }]}>Remove</Text>
+          <Text style={[$removeText, { color: colors.error }]}>Remove</Text>
         </TouchableOpacity>
       </View>
 
@@ -327,7 +327,7 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
         <Switch
           value={app.blockedForever}
           onValueChange={(v) => updateApp(appId, { blockedForever: v })}
-          trackColor={{ false: colors.cardElevated, true: "#007AFF" }}
+          trackColor={{ false: colors.cardElevated, true: colors.tint }}
           ios_backgroundColor={colors.cardElevated}
         />
       </View>
