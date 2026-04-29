@@ -1,11 +1,78 @@
-# Welcome to your new ignited app!
+# Sami
 
-> The latest and greatest boilerplate for Infinite Red opinions
+A React Native focus and productivity app that helps users manage distractions and track focused work sessions toward personal goals.
 
-This is the boilerplate that [Infinite Red](https://infinite.red) uses as a way to test bleeding-edge changes to our React Native stack.
+## What It Does
 
-- [Quick start documentation](https://github.com/infinitered/ignite/blob/master/docs/boilerplate/Boilerplate.md)
-- [Full documentation](https://github.com/infinitered/ignite/blob/master/docs/README.md)
+Sami lets users:
+- Create and manage focus goals
+- Run timed focus sessions with a countdown timer
+- Block distracting apps on a customizable schedule
+- Log post-session reflections and focus scores
+- View weekly insights and analytics per goal
+
+## Tech Stack
+
+| Category | Libraries |
+|---|---|
+| Framework | React Native 0.83.4, Expo 55, TypeScript 5.9 |
+| Navigation | React Navigation 7 (native-stack, bottom-tabs) |
+| State | React Context API + MMKV persistent storage |
+| UI | react-native-reanimated, react-native-gesture-handler, react-native-heroicons |
+| Fonts | Space Grotesk via `@expo-google-fonts/space-grotesk` |
+| Networking | apisauce |
+| i18n | i18next + react-i18next (EN, ES, FR, AR, HI, JA, KO) |
+| Notifications | expo-notifications |
+| Debugging | Reactotron + MMKV plugin |
+| Testing | Jest, Maestro (E2E) |
+| Build | EAS (Expo Application Services) |
+
+**JS Engine:** Hermes — **New Architecture:** Enabled
+
+## Project Structure
+
+```
+app/
+├── screens/          # Feature screens (Login, Goals, GoalDetail, FocusSession, Reflection, Insights)
+├── context/          # Global state (AuthContext, GoalContext, SessionContext, AppBlockContext)
+├── navigators/       # Navigation setup (App, Main, Goals navigators + types)
+├── components/       # Reusable UI components
+├── theme/            # Colors, typography, spacing, dark/light theme system
+├── hooks/            # useAppIcons (iTunes API), useInstalledApps
+├── models/           # TypeScript types (Goal, FocusSession, BlockedApp, TimeFrame)
+├── services/api/     # apisauce API client + error handling
+├── utils/            # Storage (MMKV wrapper), notifications, date formatting
+├── i18n/             # Translation files per language
+├── config/           # Dev/prod API endpoints + base config
+├── data/             # Curated app list (70+ apps across social, gaming, video, etc.)
+└── devtools/         # Reactotron config
+assets/
+├── icons/
+└── images/
+```
+
+## Screens
+
+| Screen | Description |
+|---|---|
+| **Login** | Email-based auth with validation |
+| **Goals** | Main dashboard — goal cards, weekly stats, create new goals |
+| **Goal Detail** | Edit goal, manage blocked apps, configure time-based blocking schedules, drag-to-group apps |
+| **Focus Session** | Animated circular countdown timer, pause/resume/end controls |
+| **Reflection** | Post-session feedback — what you accomplished, focus score (1–5), distraction tracking |
+| **Insights** | Weekly bar charts and stats (sessions, minutes, avg focus score) per goal |
+
+## Key Data Models
+
+**Goal** — `id`, `name`, `accentColor`, `createdAt`, `isArchived`
+
+**FocusSession** — `goalId`, `startedAt`, `endedAt`, `plannedDuration`, `actualDuration`, `reflection`, `focusScore` (1–5), `wasDistracted`, `distractionNote`, `completedFully`
+
+**BlockedApp** — `name`, `blockedForever`, `timeFrames[]`, `groupId` (for drag-grouped apps)
+
+**TimeFrame** — `startTime`, `endTime`, `days[]` (0=Sun–6=Sat)
+
+All data is persisted locally with MMKV — no backend required.
 
 ## Getting Started
 
@@ -14,64 +81,57 @@ npm install --legacy-peer-deps
 npm run start
 ```
 
-To make things work on your local simulator, or on your phone, you need first to [run `eas build`](https://github.com/infinitered/ignite/blob/master/docs/expo/EAS.md). We have many shortcuts on `package.json` to make it easier:
+The app uses a custom dev client. Build it first before running on a device or simulator:
 
 ```bash
-npm run build:ios:sim # build for ios simulator
-npm run build:ios:device # build for ios device
-npm run build:ios:prod # build for ios device
+# iOS
+npm run build:ios:sim      # simulator
+npm run build:ios:device   # physical device
+npm run build:ios:preview  # TestFlight
+npm run build:ios:prod     # App Store
+
+# Android
+npm run build:android:sim      # emulator
+npm run build:android:device   # physical device
+npm run build:android:preview  # Google Play internal track
+npm run build:android:prod     # Play Store
 ```
 
-### `./assets`
+**Prerequisites:** Node.js >= 20, Xcode (iOS), Android Studio (Android), EAS CLI (`npm i -g eas-cli`)
 
-This directory is designed to organize and store various assets, making it easy for you to manage and use them in your application. The assets are further categorized into subdirectories, including `icons` and `images`:
+## Other Scripts
 
-```tree
-assets
-├── icons
-└── images
+```bash
+npm run compile         # TypeScript type check
+npm run lint            # ESLint (auto-fix)
+npm run lint:check      # ESLint (check only)
+npm run test            # Jest unit tests
+npm run test:watch      # Jest in watch mode
+npm run test:maestro    # Maestro E2E tests
+npm run depcruise:graph # Generate dependency graph SVG
+npm run adb             # Android reverse port forwarding (dev)
 ```
 
-**icons**
-This is where your icon assets will live. These icons can be used for buttons, navigation elements, or any other UI components. The recommended format for icons is PNG, but other formats can be used as well.
+## Theme
 
-Ignite comes with a built-in `Icon` component. You can find detailed usage instructions in the [docs](https://github.com/infinitered/ignite/blob/master/docs/boilerplate/app/components/Icon.md).
+Sami uses a custom theme system with light ("Warm Paper") and dark mode support, toggled automatically from system preference. Theme is provided via React Context and consumed in all screens and components.
 
-**images**
-This is where your images will live, such as background images, logos, or any other graphics. You can use various formats such as PNG, JPEG, or GIF for your images.
+Colors, spacing, typography, and timing values are all centralized in `app/theme/`.
 
-Another valuable built-in component within Ignite is the `AutoImage` component. You can find detailed usage instructions in the [docs](https://github.com/infinitered/ignite/blob/master/docs/Components-AutoImage.md).
+## App Blocking
 
-How to use your `icon` or `image` assets:
+The app includes a curated list of 70+ distracting apps (social, video, gaming, shopping, messaging, music, news, dating) in `app/data/curatedApps.ts`. App icons are fetched at runtime from the iTunes Search API via the `useAppIcons` hook. Blocking schedules use time frames tied to days of the week.
 
-```typescript
-import { Image } from 'react-native';
+## Configuration
 
-const MyComponent = () => {
-  return (
-    <Image source={require('assets/images/my_image.png')} />
-  );
-};
-```
+| File | Purpose |
+|---|---|
+| `app/config/config.base.ts` | Base config (nav persistence, error catching, exit routes) |
+| `app/config/config.dev.ts` | Dev API base URL |
+| `app/config/config.prod.ts` | Prod API base URL |
+| `app.json` | Expo app config (name, bundle IDs, icons, plugins) |
+| `app.config.ts` | Dynamic Expo config (iOS privacy manifests) |
+| `eas.json` | EAS build profiles |
+| `tsconfig.json` | TypeScript strict mode, path aliases (`@/*`, `@assets/*`) |
 
-## Running Maestro end-to-end tests
-
-Follow our [Maestro Setup](https://ignitecookbook.com/docs/recipes/MaestroSetup) recipe.
-
-## Next Steps
-
-### Ignite Cookbook
-
-[Ignite Cookbook](https://ignitecookbook.com/) is an easy way for developers to browse and share code snippets (or “recipes”) that actually work.
-
-### Upgrade Ignite boilerplate
-
-Read our [Upgrade Guide](https://ignitecookbook.com/docs/recipes/UpdatingIgnite) to learn how to upgrade your Ignite project.
-
-## Community
-
-⭐️ Help us out by [starring on GitHub](https://github.com/infinitered/ignite), filing bug reports in [issues](https://github.com/infinitered/ignite/issues) or [ask questions](https://github.com/infinitered/ignite/discussions).
-
-💬 Join us on [Slack](https://join.slack.com/t/infiniteredcommunity/shared_invite/zt-1f137np4h-zPTq_CbaRFUOR_glUFs2UA) to discuss.
-
-📰 Make our Editor-in-chief happy by [reading the React Native Newsletter](https://reactnativenewsletter.com/).
+App identifiers: iOS bundle `com.sami`, Android package `com.sami`, deep link scheme `sami://`
