@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Image, ImageStyle, View, ViewStyle, TextStyle } from "react-native"
 
 import { Text } from "@/components/Text"
@@ -12,13 +13,15 @@ interface AppIconProps {
 
 export function AppIcon({ name, initials, brandColor, iconUrl, size = 34 }: AppIconProps) {
   const radius = size * 0.26
+  const [imgError, setImgError] = useState(false)
 
-  if (iconUrl) {
+  if (iconUrl && !imgError) {
     return (
       <View style={[$box, { backgroundColor: brandColor, width: size, height: size, borderRadius: radius }]}>
         <Image
           source={{ uri: iconUrl }}
-          style={[$image, { width: size, height: size }]}
+          style={[$image, { width: size, height: size, borderRadius: radius }]}
+          onError={() => setImgError(true)}
         />
       </View>
     )

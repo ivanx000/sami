@@ -25,9 +25,7 @@ export function useAppIcons(apps: CuratedApp[]): Record<string, string> {
             `https://itunes.apple.com/lookup?bundleId=${app.bundleId}&entity=software`,
           )
           const json = await res.json()
-          const raw: string | undefined = json.results?.[0]?.artworkUrl100
-          // Request PNG to preserve transparency (avoids white JPEG background)
-          const url = raw?.replace(/\d+x\d+bb\.jpg$/, "100x100bb.png")
+          const url: string | undefined = json.results?.[0]?.artworkUrl100
           if (url) iconCache.set(app.id, url)
         } catch {
           // leave uncached, fallback to initials
