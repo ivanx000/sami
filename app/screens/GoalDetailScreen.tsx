@@ -19,6 +19,8 @@ import { AppIcon } from "@/components/AppIcon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
+import { CURATED_APPS } from "@/data/curatedApps"
+import { useAppIcons } from "@/hooks/useAppIcons"
 import type { TimeFrame } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
 import type { MainStackScreenProps } from "@/navigators/navigationTypes"
@@ -356,6 +358,10 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
 
   const app = getApp(appId)
 
+  const curatedApp = CURATED_APPS.find((c) => c.name === app?.name)
+  const iconUrls = useAppIcons(curatedApp ? [curatedApp] : [])
+  const iconUrl = curatedApp ? iconUrls[curatedApp.id] : undefined
+
   if (!app) {
     navigation.goBack()
     return null
@@ -407,6 +413,7 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
             name={app.name}
             initials={app.name.slice(0, 2).toUpperCase()}
             brandColor={app.brandColor ?? app.accentColor}
+            iconUrl={iconUrl}
             size={52}
           />
           <View style={{ flex: 1 }}>

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>sami — Light Theme Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1a1a1a; font-family: 'Space Grotesk', sans-serif; }
+</style>
+</head>
+<body>
+<script type="text/babel">
+
+/* ── Three light palettes ── */
+const PALETTES = {
+  // V1: Warm Paper — Claude.ai warmth, ink-dark text, forest green
+  warm: {
+    name: 'Warm Paper',
+    bg:        '#FAF9F6',
+    surface:   '#FFFFFF',
+    surfaceAlt:'#F4F2ED',
+    border:    '#E5E0D5',
+    borderSub: '#EDE9E2',
+    text:      '#1A1714',
+    textDim:   '#8A7F72',
+    textFaint: '#BAB2A6',
+    accent:    '#2E7D52',
+    accentBg:  '#EDF5F0',
+    accentBorder:'#C3DCCB',
+    danger:    '#C0392B',
+    dangerBg:  '#FDF1F0',
+  },
+  // V2: Cool Stone — crisper, more neutral, bright green pop
+  stone: {
+    name: 'Cool Stone',
+    bg:        '#F7F7F5',
+    surface:   '#FFFFFF',
+    surfaceAlt:'#F0F0EE',
+    border:    '#E2E2DE',
+    borderSub: '#EAEAE7',
+    text:      '#18181B',
+    textDim:   '#71717A',
+    textFaint: '#A1A1AA',
+    accent:    '#16A34A',
+    accentBg:  '#F0FDF4',
+    accentBorder:'#BBF7D0',
+    danger:    '#DC2626',
+    dangerBg:  '#FEF2F2',
+  },
+  // V3: Sand — warmest, most organic, sage green accent
+  sand: {
+    name: 'Sand & Sage',
+    bg:        '#F9F6F0',
+    surface:   '#FFFEFB',
+    surfaceAlt:'#F3EFE6',
+    border:    '#E8E0D0',
+    borderSub: '#EDE8DC',
+    text:      '#211D17',
+    textDim:   '#9A8E7E',
+    textFaint: '#C4BAA8',
+    accent:    '#4A7C59',
+    accentBg:  '#EFF5F1',
+    accentBorder:'#C6DBCD',
+    danger:    '#B5451B',
+    dangerBg:  '#FDF3EF',
+  },
+}
+
+/* ── Shared primitives ── */
+const AppDot = ({ name, color, size = 36 }) => {
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: size * 0.22,
+      background: color, flexShrink: 0,
+      display:'flex', alignItems:'center', justifyContent:'center',
+      fontSize: size * 0.32, fontWeight: 700, color: '#fff',
+      letterSpacing:'-0.5px',
+      boxShadow:`0 1px 4px ${color}40`
+    }}>{initials}</div>
+  )
+}
+
+const Toggle = ({ on, T }) => {
+  const w = 40, h = 24
+  return (
+    <div style={{
+      width: w, height: h, borderRadius: h,
+      background: on ? T.accent : T.surfaceAlt,
+      border:`1.5px solid ${on ? T.accent : T.border}`,
+      position:'relative', flexShrink: 0,
+    }}>
+      <div style={{
+        position:'absolute', top: 3, left: on ? w - h + 3 : 3,
+        width: h - 6, height: h - 6, borderRadius: '50%',
+        background: on ? '#fff' : T.textFaint,
+        boxShadow:'0 1px 3px rgba(0,0,0,0.15)'
+      }}/>
+    </div>
+  )
+}
+
+const GroupBadge = ({ label, time, T }) => (
+  <div style={{ display:'inline-flex', alignItems:'center', gap: 6 }}>
+    <span style={{ fontSize: 12, fontWeight: 700, color: T.accent }}>{label}</span>
+    {time && <span style={{ fontSize: 11, color: T.textDim }}>{time}</span>}
+  </div>
+)
+
+const Divider = ({ T }) => <div style={{ height: 1, background: T.borderSub, margin:'0 14px' }}/>
+
+/* ── DASHBOARD ── */
+const Dashboard = ({ T }) => {
+  // Weekly time-saved bars: S M T W T F S, value = minutes saved
+  const hourlyMins = [42, 78, 55, 134, 90, 18, 61]
+  const maxMins    = Math.max(...hourlyMins)
+  const totalMins  = hourlyMins.reduce((a,b) => a+b, 0)
+  const hh         = Math.floor(totalMins / 60)
+  const mm         = totalMins % 60
+
+  return (
+    <div style={{ background: T.bg, height:'100%', overflowY:'auto', paddingBottom: 32 }}>
+      {/* Nav */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'60px 20px 10px' }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing:'-0.6px' }}>sami</div>
+        <div style={{ display:'flex', gap: 10 }}>
+          {[
+            <path key="s" d="M3 6h10M3 10h10M3 14h6" stroke={T.textDim} strokeWidth="1.5" strokeLinecap="round"/>,
+            <><circle key="c" cx="7" cy="7" r="5" stroke={T.textDim} strokeWidth="1.5" fill="none"/><path d="M7 4.5v2.5l1.5 1" stroke={T.textDim} strokeWidth="1.5" strokeLinecap="round"/></>
+          ].map((icon, i) => (
+            <div key={i} style={{ width: 32, height: 32, borderRadius: 9, background: T.surface, border:`1px solid ${T.border}`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">{icon}</svg>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Time saved hero — bare, no container */}
+      <div style={{ padding:'4px 20px 18px' }}>
+        {/* Headline */}
+        <div style={{ marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: T.textDim, letterSpacing: 0.5, textTransform:'uppercase', marginBottom: 4 }}>Saved this week</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: T.text, letterSpacing:'-1px', lineHeight: 1 }}>{hh}h {mm}m</div>
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display:'flex', gap: 18, marginBottom: 18, marginTop: 8 }}>
+          <div style={{ display:'flex', alignItems:'center', gap: 5 }}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M6.5 1C6.5 1 9.5 3.5 9.5 6C9.5 7.1 9.0 8 8.2 8.6C8.3 8.1 8.2 7.5 7.9 7C7.4 8 6.5 8.5 6.5 9.5C6.5 10.6 7.3 11.5 8.2 11.9C7.7 12 7.1 12 6.5 12C4.0 12 2 10 2 7.5C2 4.5 6.5 1 6.5 1Z" fill={T.accent}/>
+            </svg>
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>12</span>
+            <span style={{ fontSize: 12, color: T.textDim }}>day streak</span>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap: 5 }}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <circle cx="6.5" cy="6.5" r="5" stroke={T.accent} strokeWidth="1.4" fill="none"/>
+              <path d="M6.5 3.5v3l2 1.2" stroke={T.accent} strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>2h 14m</span>
+            <span style={{ fontSize: 12, color: T.textDim }}>saved today</span>
+          </div>
+        </div>
+
+        {/* Weekly bar chart — bare on screen */}
+        <div style={{ display:'flex', alignItems:'flex-end', gap: 6, height: 52 }}>
+          {hourlyMins.map((m, i) => (
+            <div key={i} style={{
+              flex: 1, borderRadius: 4,
+              height: m > 0 ? `${Math.max((m/maxMins)*100, 10)}%` : 3,
+              background: i === 3 ? T.accent : m > 0 ? `${T.accent}70` : T.border,
+              minHeight: m > 0 ? 4 : 3,
+            }}/>
+          ))}
+        </div>
+        {/* Day labels */}
+        <div style={{ display:'flex', gap: 6, marginTop: 6 }}>
+          {['S','M','T','W','T','F','S'].map((d, i) => (
+            <div key={i} style={{ flex:1, textAlign:'center', fontSize: 10, fontWeight: 600, color: i === 3 ? T.accent : T.textFaint }}>{d}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Schedule groups */}
+      <div style={{ padding:'0 16px' }}>
+
+        {/* Weekdays group */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ background: T.surface, borderRadius: 14, overflow:'hidden', border:`1.5px solid ${T.accentBorder}`, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px 8px', background: T.accentBg }}>
+              <GroupBadge label="Weekdays" time="9am–6pm" T={T} />
+              <span style={{ fontSize: 11, color: T.textFaint }}>2 apps</span>
+            </div>
+            {[{name:'Instagram',color:'#E1306C'},{name:'X (Twitter)',color:'#111'}].map((app, i) => (
+              <div key={app.name}>
+                <Divider T={T} />
+                <div style={{ display:'flex', alignItems:'center', gap: 12, padding:'12px 14px' }}>
+                  <AppDot name={app.name} color={app.color} />
+                  <span style={{ flex:1, fontSize: 14, fontWeight: 500, color: T.text }}>{app.name}</span>
+                  <Toggle on={false} T={T} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Always group */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ background: T.surface, borderRadius: 14, overflow:'hidden', border:`1.5px solid ${T.accentBorder}`, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px 8px', background: T.accentBg }}>
+              <div style={{ display:'flex', alignItems:'center', gap: 6 }}>
+                <GroupBadge label="Always" T={T} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: T.accent }}>Active</span>
+              </div>
+              <span style={{ fontSize: 11, color: T.textFaint }}>2 apps</span>
+            </div>
+            {[{name:'Facebook',color:'#1877F2',on:true},{name:'Safari',color:'#006CFF',on:true}].map((app, i) => (
+              <div key={app.name}>
+                <Divider T={T} />
+                <div style={{ display:'flex', alignItems:'center', gap: 12, padding:'12px 14px' }}>
+                  <AppDot name={app.name} color={app.color} />
+                  <span style={{ flex:1, fontSize: 14, fontWeight: 500, color: T.text }}>{app.name}</span>
+                  <Toggle on={true} T={T} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* No schedule */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: T.textFaint, letterSpacing: 0.8, textTransform:'uppercase', marginBottom: 8, paddingLeft: 4 }}>No schedule</div>
+          <div style={{ background: T.surface, borderRadius: 14, overflow:'hidden', border:`1px solid ${T.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+            {[{name:'Snapchat',color:'#FFCC00'},{name:'Apple News',color:'#FF3B30'}].map((app, i) => (
+              <div key={app.name}>
+                {i > 0 && <Divider T={T} />}
+                <div style={{ display:'flex', alignItems:'center', gap: 12, padding:'12px 14px' }}>
+                  <AppDot name={app.name} color={app.color} />
+                  <span style={{ flex:1, fontSize: 14, fontWeight: 500, color: T.text }}>{app.name}</span>
+                  <Toggle on={false} T={T} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Add CTA */}
+        <button style={{
+          width:'100%', padding:'13px', borderRadius: 12,
+          background: T.accent, border:'none', cursor:'pointer',
+          fontSize: 14, fontWeight: 600, color:'#fff',
+          letterSpacing:'-0.2px',
+          boxShadow:`0 2px 8px ${T.accent}30`
+        }}>+ Block an App</button>
+      </div>
+    </div>
+  )
+}
+
+/* ── BLOCK AN APP SHEET ── */
+const BlockSheet = ({ T }) => {
+  const cats = [
+    { label:'Social', apps:[{name:'Instagram',color:'#E1306C'},{name:'TikTok',color:'#111'},{name:'X (Twitter)',color:'#111'},{name:'Facebook',color:'#1877F2'},{name:'Snapchat',color:'#FFCC00'},{name:'Pinterest',color:'#E60023'}]},
+    { label:'Video', apps:[{name:'YouTube',color:'#FF0000'},{name:'Twitch',color:'#9146FF'},{name:'Netflix',color:'#E50914'},{name:'Disney+',color:'#0063E5'}]},
+    { label:'Gaming', apps:[{name:'Roblox',color:'#E8281A'},{name:'Minecraft',color:'#62B47A'},{name:'Chess.com',color:'#7FA650'}]},
+  ]
+  const selected = new Set(['Facebook','Safari'])
+  return (
+    <div style={{ background: T.bg, height:'100%', display:'flex', flexDirection:'column' }}>
+      {/* Handle */}
+      <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 4px' }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: T.border }}/>
+      </div>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 20px 12px' }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: T.text, letterSpacing:'-0.4px' }}>Block an App</div>
+        <div style={{ fontSize: 14, color: T.accent, fontWeight: 600 }}>Done (2)</div>
+      </div>
+      {/* Search */}
+      <div style={{ padding:'0 16px 10px' }}>
+        <div style={{ background: T.surface, borderRadius: 11, padding:'9px 12px', display:'flex', alignItems:'center', gap: 8, border:`1px solid ${T.border}`, boxShadow:'0 1px 2px rgba(0,0,0,0.04)' }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke={T.textDim} strokeWidth="1.3"/><path d="M9.5 9.5l2.5 2.5" stroke={T.textDim} strokeWidth="1.3" strokeLinecap="round"/></svg>
+          <span style={{ fontSize: 14, color: T.textFaint }}>Search apps…</span>
+        </div>
+      </div>
+      {/* Category chips */}
+      <div style={{ display:'flex', gap: 7, padding:'0 16px 12px', overflowX:'auto' }}>
+        {['All','Social','Video','Gaming','Shopping','News'].map((cat, i) => (
+          <div key={cat} style={{
+            padding:'5px 12px', borderRadius: 20,
+            background: i === 0 ? T.accent : T.surface,
+            color: i === 0 ? '#fff' : T.textDim,
+            fontSize: 12, fontWeight: 600, whiteSpace:'nowrap',
+            border:`1px solid ${i === 0 ? T.accent : T.border}`,
+            boxShadow: i === 0 ? `0 2px 6px ${T.accent}30` : '0 1px 2px rgba(0,0,0,0.04)'
+          }}>{cat}</div>
+        ))}
+      </div>
+      {/* Apps */}
+      <div style={{ flex:1, overflowY:'auto', padding:'0 16px' }}>
+        {cats.map(cat => (
+          <div key={cat.label} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.textFaint, letterSpacing: 1, textTransform:'uppercase', marginBottom: 7 }}>{cat.label}</div>
+            <div style={{ background: T.surface, borderRadius: 14, overflow:'hidden', border:`1px solid ${T.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+              {cat.apps.map((app, i) => (
+                <div key={app.name}>
+                  {i > 0 && <Divider T={T} />}
+                  <div style={{ display:'flex', alignItems:'center', gap: 12, padding:'10px 14px' }}>
+                    <AppDot name={app.name} color={app.color} />
+                    <span style={{ flex:1, fontSize: 14, fontWeight: 500, color: T.text }}>{app.name}</span>
+                    {selected.has(app.name) ? (
+                      <div style={{ width: 24, height: 24, borderRadius: 7, background: T.accent, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5l3.5 3.5L11 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    ) : (
+                      <div style={{ width: 24, height: 24, borderRadius: 7, border:`1.5px solid ${T.border}`, background: T.surface }}/>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── APP DETAIL ── */
+const AppDetail = ({ T }) => {
+  const days = ['M','T','W','T','F','S','S']
+  const blocked = [true,true,true,true,true,false,false]
+  const hours = [2.1,0.2,1.8,0.0,1.5,3.2,2.8]
+  const maxH = Math.max(...hours)
+  return (
+    <div style={{ background: T.bg, height:'100%', overflowY:'auto', paddingBottom: 28 }}>
+      {/* Nav */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'60px 20px 0' }}>
+        <div style={{ display:'flex', alignItems:'center', gap: 5, color: T.accent, fontSize: 14, fontWeight: 600 }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 4L6 8l4 4" stroke={T.accent} strokeWidth="1.8" strokeLinecap="round"/></svg>
+          Back
+        </div>
+        <div style={{ fontSize: 13, color: T.danger, fontWeight: 600 }}>Remove</div>
+      </div>
+
+      {/* Identity */}
+      <div style={{ display:'flex', alignItems:'center', gap: 14, padding:'16px 20px 20px' }}>
+        <AppDot name="Instagram" color="#E1306C" size={52} />
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: T.text, letterSpacing:'-0.6px', marginBottom: 5 }}>Instagram</div>
+          <div style={{ display:'inline-flex', padding:'3px 8px', borderRadius: 8, background: T.surfaceAlt, border:`1px solid ${T.border}`, fontSize: 11, fontWeight: 600, color: T.textDim }}>Social</div>
+        </div>
+      </div>
+
+      {/* Usage chart */}
+      <div style={{ margin:'0 16px 10px', background: T.surface, borderRadius: 16, padding:'14px 16px', border:`1px solid ${T.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: T.textDim, letterSpacing: 0.5, marginBottom: 14, textTransform:'uppercase' }}>Usage this week</div>
+        <div style={{ display:'flex', alignItems:'flex-end', gap: 5, height: 56 }}>
+          {hours.map((h, i) => (
+            <div key={i} style={{ flex:1, borderRadius: 4, height:`${(h/maxH)*100}%`, minHeight: h>0 ? 3 : 0,
+              background: blocked[i] ? T.accent : T.textFaint, opacity: blocked[i] ? 0.7 : 0.35 }}/>
+          ))}
+        </div>
+        <div style={{ display:'flex', gap: 5, marginTop: 6 }}>
+          {days.map((d,i) => <div key={i} style={{ flex:1, textAlign:'center', fontSize: 9, fontWeight: 600, color: blocked[i] ? T.accent : T.textFaint }}>{d}</div>)}
+        </div>
+        <div style={{ display:'flex', gap: 14, marginTop: 10 }}>
+          {[{c:T.accent,l:'Blocked days'},{c:T.textFaint,l:'Open days'}].map(x=>(
+            <div key={x.l} style={{ display:'flex', alignItems:'center', gap: 5 }}>
+              <div style={{ width:8,height:8,borderRadius:2,background:x.c,opacity:0.7 }}/>
+              <span style={{ fontSize:10,color:T.textDim }}>{x.l}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 8, margin:'0 16px 10px' }}>
+        {[{val:'11.2h',label:'Saved this week'},{val:'3.2h',label:'Used today'},{val:'47',label:'Times blocked'}].map(s=>(
+          <div key={s.label} style={{ background: T.surface, borderRadius: 12, padding:'12px 8px', textAlign:'center', border:`1px solid ${T.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.03)' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{s.val}</div>
+            <div style={{ fontSize: 9, color: T.textDim, marginTop: 3, lineHeight: 1.3 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Block schedule */}
+      <div style={{ margin:'0 16px 10px' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: T.textFaint, letterSpacing: 0.8, textTransform:'uppercase', marginBottom: 7, paddingLeft: 2 }}>Block Schedule</div>
+        <div style={{ background: T.surface, borderRadius: 14, overflow:'hidden', border:`1px solid ${T.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap: 12, padding:'12px 14px' }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Weekdays</div>
+              <div style={{ fontSize: 11, color: T.textDim, marginTop: 1 }}>9am – 6pm · Mon–Fri</div>
+            </div>
+            <div style={{ padding:'3px 8px', borderRadius: 8, background: T.accentBg, border:`1px solid ${T.accentBorder}`, fontSize: 11, fontWeight: 600, color: T.accent }}>In group</div>
+          </div>
+          <Divider T={T} />
+          <div style={{ display:'flex', alignItems:'center', gap: 12, padding:'12px 14px' }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Block Forever</div>
+              <div style={{ fontSize: 11, color: T.textDim, marginTop: 1 }}>Override all schedules</div>
+            </div>
+            <Toggle on={false} T={T} />
+          </div>
+        </div>
+      </div>
+
+      {/* Motivation note */}
+      <div style={{ margin:'0 16px', padding:'14px', borderRadius: 14, background: T.accentBg, border:`1px solid ${T.accentBorder}` }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: T.accent, marginBottom: 5, letterSpacing: 0.3 }}>Why you blocked this</div>
+        <div style={{ fontSize: 13, color: T.text, lineHeight: 1.55, fontStyle:'italic' }}>"Stop mindless scrolling — be more present."</div>
+      </div>
+    </div>
+  )
+}
+
+/* ── ROOT ── */
+const App = () => (
+  <DesignCanvas title="sami — Light Theme Directions">
+    <DCSection id="warm" title="V1 · Warm Paper — off-white, forest green">
+      <DCArtboard id="warm-dash" label="Dashboard" width={390} height={852}>
+        <IOSDevice width={390} height={852}><Dashboard T={PALETTES.warm} /></IOSDevice>
+      </DCArtboard>
+      <DCArtboard id="warm-block" label="Block an App" width={390} height={780}>
+        <IOSDevice width={390} height={780}>
+          <div style={{ background:'rgba(0,0,0,0.25)', height:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+            <div style={{ height:'85%', background: PALETTES.warm.bg, borderRadius:'20px 20px 0 0', overflow:'hidden' }}><BlockSheet T={PALETTES.warm} /></div>
+          </div>
+        </IOSDevice>
+      </DCArtboard>
+      <DCArtboard id="warm-detail" label="App Detail" width={390} height={780}>
+        <IOSDevice width={390} height={780}><AppDetail T={PALETTES.warm} /></IOSDevice>
+      </DCArtboard>
+    </DCSection>
+    <DCSection id="stone" title="V2 · Cool Stone — crisp neutral, bright green">
+      <DCArtboard id="stone-dash" label="Dashboard" width={390} height={852}>
+        <IOSDevice width={390} height={852}><Dashboard T={PALETTES.stone} /></IOSDevice>
+      </DCArtboard>
+      <DCArtboard id="stone-block" label="Block an App" width={390} height={780}>
+        <IOSDevice width={390} height={780}>
+          <div style={{ background:'rgba(0,0,0,0.25)', height:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+            <div style={{ height:'85%', background: PALETTES.stone.bg, borderRadius:'20px 20px 0 0', overflow:'hidden' }}><BlockSheet T={PALETTES.stone} /></div>
+          </div>
+        </IOSDevice>
+      </DCArtboard>
+      <DCArtboard id="stone-detail" label="App Detail" width={390} height={780}>
+        <IOSDevice width={390} height={780}><AppDetail T={PALETTES.stone} /></IOSDevice>
+      </DCArtboard>
+    </DCSection>
+    <DCSection id="sand" title="V3 · Sand & Sage — warmest, sage green">
+      <DCArtboard id="sand-dash" label="Dashboard" width={390} height={852}>
+        <IOSDevice width={390} height={852}><Dashboard T={PALETTES.sand} /></IOSDevice>
+      </DCArtboard>
+      <DCArtboard id="sand-block" label="Block an App" width={390} height={780}>
+        <IOSDevice width={390} height={780}>
+          <div style={{ background:'rgba(0,0,0,0.25)', height:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+            <div style={{ height:'85%', background: PALETTES.sand.bg, borderRadius:'20px 20px 0 0', overflow:'hidden' }}><BlockSheet T={PALETTES.sand} /></div>
+          </div>
+        </IOSDevice>
+      </DCArtboard>
+      <DCArtboard id="sand-detail" label="App Detail" width={390} height={780}>
+        <IOSDevice width={390} height={780}><AppDetail T={PALETTES.sand} /></IOSDevice>
+      </DCArtboard>
+    </DCSection>
+  </DesignCanvas>
+)
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+</script>
+<div id="root" style="width:100%;height:100vh;"></div>
+</body>
+</html>
