@@ -41,7 +41,7 @@ import { AppIcon } from "@/components/AppIcon"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
-import { CURATED_APPS, filterCuratedApps } from "@/data/curatedApps"
+import { CURATED_APPS } from "@/data/curatedApps"
 import { useAppIcons } from "@/hooks/useAppIcons"
 import { useInstalledApps } from "@/hooks/useInstalledApps"
 import type { BlockedApp, TimeFrame } from "@/models/types"
@@ -472,7 +472,8 @@ function GroupContainer({
 
 // ---- App Picker Sheet ----
 
-const SHEET_HEIGHT = Dimensions.get("window").height * 0.72
+const SHEET_HEIGHT = Dimensions.get("window").height * 0.82
+const PICKER_CATEGORIES = ["All", "Social", "Video", "Gaming", "Shopping", "Messaging", "Music", "News", "Dating", "Browser", "Food"]
 
 function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { addApp, apps } = useAppBlock()
@@ -481,16 +482,59 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   } = useAppTheme()
   const insets = useSafeAreaInsets()
   const [query, setQuery] = useState("")
+  const [activeCategory, setActiveCategory] = useState("All")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { apps: installedApps, loading } = useInstalledApps()
   const iconUrls = useAppIcons(installedApps)
 
-  const filtered = useMemo(() => filterCuratedApps(installedApps, query), [installedApps, query])
-  const addedNames = useMemo(() => new Set(apps.map((a) => a.name)), [apps])
+  const blockedNames = useMemo(() => new Set(apps.map((a) => a.name)), [apps])
+
+  const filteredApps = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return installedApps.filter((app) => {
+      if (blockedNames.has(app.name)) return false
+      if (q && !app.name.toLowerCase().includes(q)) return false
+      if (activeCategory !== "All" && app.category !== activeCategory) return false
+      return true
+    })
+  }, [installedApps, blockedNames, query, activeCategory])
+
+  const groupedApps = useMemo(() => {
+    const map = new Map<string, typeof installedApps>()
+    for (const app of filteredApps) {
+      if (!map.has(app.category)) map.set(app.category, [])
+      map.get(app.category)!.push(app)
+    }
+    return PICKER_CATEGORIES.slice(1).flatMap((cat) =>
+      map.has(cat) ? [{ category: cat, apps: map.get(cat)! }] : [],
+    )
+  }, [filteredApps])
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleDone = () => {
+    for (const id of selectedIds) {
+      const app = installedApps.find((a) => a.id === id)
+      if (app) addApp(app.name, app.brandColor)
+    }
+    handleClose()
+  }
 
   const handleClose = () => {
     setQuery("")
+    setActiveCategory("All")
+    setSelectedIds(new Set())
     onClose()
   }
+
+  const doneLabel = selectedIds.size > 0 ? `Done (${selectedIds.size})` : "Done"
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
@@ -507,12 +551,8 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
         {/* Header */}
         <View style={$pickerHeader}>
           <Text style={[$modalTitle, { color: colors.text }]}>Block an App</Text>
-          <TouchableOpacity
-            onPress={handleClose}
-            hitSlop={12}
-            style={[$doneBtn, { backgroundColor: colors.accentBg }]}
-          >
-            <Text style={[$doneBtnText, { color: colors.tint }]}>Done</Text>
+          <TouchableOpacity onPress={handleDone} hitSlop={12}>
+            <Text style={[$doneBtnText, { color: colors.tint }]}>{doneLabel}</Text>
           </TouchableOpacity>
         </View>
 
@@ -536,6 +576,33 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
           />
         </View>
 
+        {/* Category chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={$chipRow}
+          style={$chipScroll}
+        >
+          {PICKER_CATEGORIES.map((cat) => {
+            const active = activeCategory === cat
+            return (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setActiveCategory(cat)}
+                style={[
+                  $chip,
+                  active
+                    ? { backgroundColor: colors.tint }
+                    : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text style={[$chipText, { color: active ? "#fff" : colors.text }]}>{cat}</Text>
+              </TouchableOpacity>
+            )
+          })}
+        </ScrollView>
+
         {loading ? (
           <View style={$pickerLoading}>
             <ActivityIndicator color={colors.tint} />
@@ -546,52 +613,66 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
             keyboardShouldPersistTaps="handled"
             style={{ marginHorizontal: -20 }}
           >
-            <View
-              style={[
-                $pickerList,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              {filtered.map((item, idx) => {
-                const alreadyAdded = addedNames.has(item.name)
-                return (
-                  <View key={item.id}>
-                    {idx > 0 && (
-                      <View style={[$pickerDivider, { backgroundColor: colors.separator }]} />
-                    )}
-                    <View style={$pickerRow}>
-                      <AppIcon
-                        name={item.name}
-                        initials={item.initials}
-                        brandColor={item.brandColor}
-                        iconUrl={iconUrls[item.id]}
-                        size={36}
-                      />
-                      <Text style={[$pickerName, { color: colors.text }]} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <TouchableOpacity
-                        style={[
-                          $pickerCheck,
-                          alreadyAdded
-                            ? { backgroundColor: colors.tint }
-                            : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1.5 },
-                        ]}
-                        onPress={() => {
-                          if (!alreadyAdded) addApp(item.name, item.brandColor)
-                        }}
-                        disabled={alreadyAdded}
-                        activeOpacity={0.6}
-                      >
-                        {alreadyAdded && (
-                          <CheckIcon size={14} color="#fff" strokeWidth={2.5} />
-                        )}
-                      </TouchableOpacity>
-                    </View>
+            {groupedApps.length === 0 ? (
+              <View style={$pickerEmpty}>
+                <Text style={{ color: colors.tintInactive, fontSize: 14 }}>No apps found</Text>
+              </View>
+            ) : (
+              groupedApps.map(({ category, apps: catApps }) => (
+                <View key={category} style={{ marginBottom: 4 }}>
+                  <Text style={[$sectionHeader, { color: colors.tintInactive }]}>
+                    {category.toUpperCase()}
+                  </Text>
+                  <View
+                    style={[
+                      $pickerList,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                    ]}
+                  >
+                    {catApps.map((item, idx) => {
+                      const isSelected = selectedIds.has(item.id)
+                      return (
+                        <View key={item.id}>
+                          {idx > 0 && (
+                            <View style={[$pickerDivider, { backgroundColor: colors.separator }]} />
+                          )}
+                          <TouchableOpacity
+                            style={$pickerRow}
+                            onPress={() => toggleSelect(item.id)}
+                            activeOpacity={0.7}
+                          >
+                            <AppIcon
+                              name={item.name}
+                              initials={item.initials}
+                              brandColor={item.brandColor}
+                              iconUrl={iconUrls[item.id]}
+                              size={36}
+                            />
+                            <Text style={[$pickerName, { color: colors.text }]} numberOfLines={1}>
+                              {item.name}
+                            </Text>
+                            <View
+                              style={[
+                                $pickerCheck,
+                                isSelected
+                                  ? { backgroundColor: colors.tint }
+                                  : {
+                                      backgroundColor: "transparent",
+                                      borderColor: colors.border,
+                                      borderWidth: 1.5,
+                                    },
+                              ]}
+                            >
+                              {isSelected && <CheckIcon size={14} color="#fff" strokeWidth={2.5} />}
+                            </View>
+                          </TouchableOpacity>
+                        </View>
+                      )
+                    })}
                   </View>
-                )
-              })}
-            </View>
+                </View>
+              ))
+            )}
           </ScrollView>
         )}
       </View>
@@ -1110,15 +1191,46 @@ const $pickerHeader: ViewStyle = {
   marginBottom: 14,
 }
 
-const $doneBtn: ViewStyle = {
+const $doneBtnText: TextStyle = {
+  fontSize: 15,
+  fontFamily: "spaceGroteskSemiBold",
+}
+
+const $chipScroll: ViewStyle = {
+  marginHorizontal: -20,
+  marginBottom: 12,
+  flexGrow: 0,
+}
+
+const $chipRow: ViewStyle = {
+  flexDirection: "row",
+  gap: 8,
+  paddingHorizontal: 20,
+}
+
+const $chip: ViewStyle = {
   paddingHorizontal: 14,
-  paddingVertical: 6,
+  paddingVertical: 7,
   borderRadius: 20,
 }
 
-const $doneBtnText: TextStyle = {
-  fontSize: 14,
+const $chipText: TextStyle = {
+  fontSize: 13,
+  fontFamily: "spaceGroteskMedium",
+}
+
+const $sectionHeader: TextStyle = {
+  fontSize: 11,
   fontFamily: "spaceGroteskSemiBold",
+  letterSpacing: 0.6,
+  marginHorizontal: 20,
+  marginTop: 12,
+  marginBottom: 6,
+}
+
+const $pickerEmpty: ViewStyle = {
+  paddingVertical: 40,
+  alignItems: "center",
 }
 
 const $searchBar: ViewStyle = {
