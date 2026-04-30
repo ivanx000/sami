@@ -191,7 +191,7 @@ const $baseViewStyle: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 const $baseTextStyle: ThemedStyle<TextStyle> = ({ typography }) => ({
   fontSize: 16,
   lineHeight: 20,
-  fontFamily: typography.primary.medium,
+  fontWeight: typography.primary.medium,
   textAlign: "center",
   flexShrink: 1,
   flexGrow: 0,

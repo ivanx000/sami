@@ -337,7 +337,7 @@ function AddTimeFrameModal({
               style={[$modalBtn, { backgroundColor: accentColor }]}
               onPress={handleAdd}
             >
-              <Text style={{ color: "#fff", fontFamily: "spaceGroteskBold" }}>Add</Text>
+              <Text style={{ color: "#fff", fontWeight: "700" }}>Add</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -538,12 +538,12 @@ const $backBtn: ViewStyle = {
 
 const $backText: TextStyle = {
   fontSize: 14,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $removeText: TextStyle = {
   fontSize: 13,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $scrollContent: ViewStyle = {
@@ -562,7 +562,7 @@ const $appName: TextStyle = {
   fontSize: 22,
   letterSpacing: -0.6,
   marginBottom: 6,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $categoryBadge: ViewStyle = {
@@ -575,7 +575,7 @@ const $categoryBadge: ViewStyle = {
 
 const $categoryText: TextStyle = {
   fontSize: 11,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $chartCard: ViewStyle = {
@@ -591,7 +591,7 @@ const $chartCard: ViewStyle = {
 
 const $sectionLabel: TextStyle = {
   fontSize: 11,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
   letterSpacing: 0.5,
   textTransform: "uppercase",
   marginBottom: 14,
@@ -617,7 +617,7 @@ const $usageBarLabels: ViewStyle = {
 const $usageBarLabel: TextStyle = {
   textAlign: "center",
   fontSize: 9,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $statsTiles: ViewStyle = {
@@ -641,7 +641,7 @@ const $statTile: ViewStyle = {
 
 const $statTileVal: TextStyle = {
   fontSize: 15,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
   letterSpacing: -0.3,
 }
 
@@ -653,7 +653,7 @@ const $statTileLabel: TextStyle = {
 
 const $sectionTitle: TextStyle = {
   fontSize: 11,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
   letterSpacing: 0.8,
   textTransform: "uppercase",
   paddingLeft: 2,
@@ -686,7 +686,7 @@ const $scheduleRowLeft: ViewStyle = {
 
 const $scheduleRowTitle: TextStyle = {
   fontSize: 14,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $scheduleRowSub: TextStyle = {
@@ -715,7 +715,7 @@ const $tfContent: ViewStyle = {
 
 const $tfDays: TextStyle = {
   fontSize: 14,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $tfTime: TextStyle = {
@@ -734,7 +734,7 @@ const $addTfRow: ViewStyle = {
 
 const $addTfText: TextStyle = {
   fontSize: 14,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $motivationCard: ViewStyle = {
@@ -745,7 +745,7 @@ const $motivationCard: ViewStyle = {
 
 const $motivationTitle: TextStyle = {
   fontSize: 11,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
   letterSpacing: 0.3,
   marginBottom: 5,
 }
@@ -778,7 +778,7 @@ const $modalHandle: ViewStyle = {
 
 const $modalTitle: TextStyle = {
   fontSize: 20,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
   marginBottom: 4,
 }
 
@@ -803,7 +803,7 @@ const $dayChip: ViewStyle = {
 
 const $dayChipText: TextStyle = {
   fontSize: 12,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $timeRow: ViewStyle = {

@@ -967,7 +967,7 @@ const $header: ViewStyle = {
 const $appTitle: TextStyle = {
   fontSize: 22,
   lineHeight: 22,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
   letterSpacing: -0.6,
   includeFontPadding: false,
 }
@@ -987,7 +987,7 @@ const $statsHero: ViewStyle = {
 
 const $statsLabel: TextStyle = {
   fontSize: 11,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
   letterSpacing: 0.5,
   textTransform: "uppercase",
   marginBottom: 4,
@@ -997,7 +997,7 @@ const $statsValue: TextStyle = {
   fontSize: 28,
   letterSpacing: -1,
   lineHeight: 32,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $statsRow: ViewStyle = {
@@ -1015,7 +1015,7 @@ const $statItem: ViewStyle = {
 
 const $statNumber: TextStyle = {
   fontSize: 13,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $statUnit: TextStyle = {
@@ -1042,7 +1042,7 @@ const $chartLabels: ViewStyle = {
 const $chartLabel: TextStyle = {
   textAlign: "center",
   fontSize: 10,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $listContent: ViewStyle = {
@@ -1069,7 +1069,7 @@ const $cardRow: ViewStyle = {
 
 const $appName: TextStyle = {
   fontSize: 14,
-  fontFamily: "spaceGroteskMedium",
+  fontWeight: "500",
 }
 
 const $scheduleSub: TextStyle = {
@@ -1101,12 +1101,12 @@ const $groupHeader: ViewStyle = {
 
 const $groupLabel: TextStyle = {
   fontSize: 12,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $groupActive: TextStyle = {
   fontSize: 11,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $groupTime: TextStyle = {
@@ -1132,7 +1132,7 @@ const $empty: ViewStyle = {
 
 const $emptyTitle: TextStyle = {
   fontSize: 20,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $emptySubtitle: TextStyle = {
@@ -1161,7 +1161,7 @@ const $addButtonInner: ViewStyle = {
 
 const $addButtonText: TextStyle = {
   fontSize: 15,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
   color: "#FFFFFF",
   letterSpacing: -0.2,
 }
@@ -1176,7 +1176,7 @@ const $modalHandle: ViewStyle = {
 
 const $modalTitle: TextStyle = {
   fontSize: 17,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
   letterSpacing: -0.4,
 }
 
@@ -1205,7 +1205,7 @@ const $pickerHeader: ViewStyle = {
 
 const $doneBtnText: TextStyle = {
   fontSize: 15,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $chipScroll: ViewStyle = {
@@ -1228,12 +1228,12 @@ const $chip: ViewStyle = {
 
 const $chipText: TextStyle = {
   fontSize: 13,
-  fontFamily: "spaceGroteskMedium",
+  fontWeight: "500",
 }
 
 const $sectionHeader: TextStyle = {
   fontSize: 11,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
   letterSpacing: 0.6,
   marginHorizontal: 20,
   marginTop: 12,
@@ -1292,7 +1292,7 @@ const $pickerLoading: ViewStyle = {
 const $pickerName: TextStyle = {
   flex: 1,
   fontSize: 14,
-  fontFamily: "spaceGroteskMedium",
+  fontWeight: "500",
 }
 
 const $pickerCheck: ViewStyle = {

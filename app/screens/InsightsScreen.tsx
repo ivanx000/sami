@@ -47,7 +47,7 @@ function WeekBar({ sessions, accentColor }: { sessions: FocusSession[]; accentCo
                 ]}
               />
             </View>
-            <Text style={[$dayLabel, { color: isToday ? colors.text : colors.textDim, fontFamily: isToday ? "spaceGroteskBold" : "spaceGroteskRegular" }]}>
+            <Text style={[$dayLabel, { color: isToday ? colors.text : colors.textDim, fontWeight: isToday ? "700" : "400" }]}>
               {format(day, "EEE")[0]}
             </Text>
           </View>
@@ -176,7 +176,7 @@ export function InsightsScreen() {
 
 const $pageTitle: TextStyle = {
   fontSize: 28,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
   marginBottom: 4,
 }
 
@@ -201,7 +201,7 @@ const $summaryDivider: ViewStyle = {
 
 const $summaryValue: TextStyle = {
   fontSize: 28,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $summaryLabel: TextStyle = {
@@ -228,7 +228,7 @@ const $accentDot: ViewStyle = {
 
 const $goalCardName: TextStyle = {
   fontSize: 16,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $weekBarContainer: ViewStyle = {
@@ -274,7 +274,7 @@ const $metric: ViewStyle = {
 
 const $metricValue: TextStyle = {
   fontSize: 18,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $metricLabel: TextStyle = {
@@ -288,7 +288,7 @@ const $insight: ViewStyle = {
 
 const $insightText: TextStyle = {
   fontSize: 13,
-  fontFamily: "spaceGroteskSemiBold",
+  fontWeight: "600",
 }
 
 const $emptyState: ViewStyle = {
@@ -299,7 +299,7 @@ const $emptyState: ViewStyle = {
 
 const $emptyTitle: TextStyle = {
   fontSize: 18,
-  fontFamily: "spaceGroteskBold",
+  fontWeight: "700",
 }
 
 const $emptySubtitle: TextStyle = {
