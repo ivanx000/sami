@@ -410,14 +410,15 @@ function GroupContainer({
   registerLayout: (appId: string, layout: { y: number; height: number }) => void
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
-  const label = anchorApp.blockedForever
-    ? "Always"
-    : anchorApp.timeFrames.length > 0
+  const label =
+    anchorApp.timeFrames.length > 0
       ? formatDays(anchorApp.timeFrames[0].days)
-      : "Group"
+      : anchorApp.blockedForever
+        ? "Always"
+        : "Group"
 
   const timeRange =
-    !anchorApp.blockedForever && anchorApp.timeFrames.length > 0
+    anchorApp.timeFrames.length > 0
       ? `${formatTime(anchorApp.timeFrames[0].startTime)}–${formatTime(anchorApp.timeFrames[0].endTime)}`
       : null
 

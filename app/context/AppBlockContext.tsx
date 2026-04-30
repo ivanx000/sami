@@ -60,7 +60,23 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
   )
 
   const deleteApp = useCallback(
-    (id: string) => persist(apps.filter((a) => a.id !== id)),
+    (id: string) => {
+      const appToDelete = apps.find((a) => a.id === id)
+      let next = apps.filter((a) => a.id !== id)
+      if (appToDelete?.groupId) {
+        const remaining = next.filter((a) => a.groupId === appToDelete.groupId)
+        if (remaining.length === 1) {
+          const lastApp = remaining[0]
+          const wasAnchor = lastApp.id === lastApp.groupId
+          next = next.map((a) =>
+            a.id === lastApp.id
+              ? { ...a, groupId: undefined, ...(wasAnchor ? {} : { timeFrames: [] }) }
+              : a,
+          )
+        }
+      }
+      persist(next)
+    },
     [apps, persist],
   )
 
@@ -99,9 +115,11 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       const target = apps.find((a) => a.id === targetId)
       if (!target) return
       const groupId = target.groupId ?? target.id
+      const anchor = apps.find((a) => a.id === groupId) ?? target
       persist(
         apps.map((a) => {
-          if (a.id === draggedId) return { ...a, groupId }
+          if (a.id === draggedId)
+            return { ...a, groupId, timeFrames: anchor.timeFrames, blockedForever: anchor.blockedForever }
           if (a.id === targetId && !a.groupId) return { ...a, groupId }
           return a
         }),
@@ -112,7 +130,16 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const ungroupApp = useCallback(
     (appId: string) => {
-      persist(apps.map((a) => (a.id === appId ? { ...a, groupId: undefined } : a)))
+      const app = apps.find((a) => a.id === appId)
+      if (!app) return
+      const wasAnchor = app.id === app.groupId
+      persist(
+        apps.map((a) =>
+          a.id === appId
+            ? { ...a, groupId: undefined, ...(wasAnchor ? {} : { timeFrames: [] }) }
+            : a,
+        ),
+      )
     },
     [apps, persist],
   )
