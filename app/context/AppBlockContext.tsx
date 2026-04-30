@@ -1,4 +1,4 @@
-import { createContext, FC, PropsWithChildren, useCallback, useContext, useMemo } from "react"
+import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef } from "react"
 import { useMMKVString } from "react-native-mmkv"
 
 import { GOAL_ACCENT_COLORS } from "@/theme/colors"
@@ -14,12 +14,14 @@ type AppBlockContextType = {
   removeTimeFrame: (appId: string, tfId: string) => void
   groupApps: (draggedId: string, targetId: string) => void
   ungroupApp: (appId: string) => void
+  setAppUnblocked: (appId: string, unblocked: boolean) => void
 }
 
 export const AppBlockContext = createContext<AppBlockContextType | null>(null)
 
 export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
   const [raw, setRaw] = useMMKVString("AppBlockContext.apps")
+  const rawRef = useRef(raw)
 
   const apps: BlockedApp[] = useMemo(() => {
     try {
@@ -30,6 +32,40 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [raw])
 
   const persist = useCallback((next: BlockedApp[]) => setRaw(JSON.stringify(next)), [setRaw])
+
+  // One-time migration: sync timeFrames/groupId across groups with stale data
+  useEffect(() => {
+    try {
+      const parsed: BlockedApp[] = rawRef.current ? JSON.parse(rawRef.current) : []
+      if (parsed.length === 0) return
+
+      let changed = false
+      const result: BlockedApp[] = parsed.map((a) => ({ ...a, timeFrames: [...a.timeFrames] }))
+      const groupIds = new Set(result.filter((a) => a.groupId).map((a) => a.groupId!))
+
+      for (const gid of groupIds) {
+        const anchor = result.find((a) => a.id === gid)
+        if (anchor && !anchor.groupId) {
+          anchor.groupId = anchor.id
+          changed = true
+        }
+        const members = result.filter((a) => a.groupId === gid || a.id === gid)
+        const tfMap = new Map<string, TimeFrame>()
+        for (const m of members) {
+          for (const tf of m.timeFrames) tfMap.set(tf.id, tf)
+        }
+        const merged = [...tfMap.values()]
+        for (const m of members) {
+          if (m.timeFrames.length !== merged.length) {
+            m.timeFrames = merged
+            changed = true
+          }
+        }
+      }
+
+      if (changed) setRaw(JSON.stringify(result))
+    } catch {}
+  }, []) // intentionally runs once on mount to fix stale persisted data
 
   const addApp = useCallback(
     (name: string, brandColor?: string): BlockedApp => {
@@ -58,7 +94,7 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       const groupId = app?.groupId
       persist(
         apps.map((a) => {
-          if (groupId && a.groupId === groupId) return { ...a, ...updates }
+          if (groupId && (a.groupId === groupId || a.id === groupId)) return { ...a, ...updates }
           if (!groupId && a.id === id) return { ...a, ...updates }
           return a
         }),
@@ -74,13 +110,18 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       if (appToDelete?.groupId) {
         const remaining = next.filter((a) => a.groupId === appToDelete.groupId)
         if (remaining.length === 1) {
-          const lastApp = remaining[0]
-          const wasAnchor = lastApp.id === lastApp.groupId
           next = next.map((a) =>
-            a.id === lastApp.id
-              ? { ...a, groupId: undefined, ...(wasAnchor ? {} : { timeFrames: [] }) }
+            a.id === remaining[0].id
+              ? { ...a, groupId: undefined, timeFrames: [], blockedForever: false }
               : a,
           )
+        } else if (remaining.length > 1 && appToDelete.id === appToDelete.groupId) {
+          const newAnchorId = remaining[0].id
+          next = next.map((a) => {
+            if (a.id === newAnchorId) return { ...a, groupId: a.id }
+            if (a.groupId === appToDelete.groupId) return { ...a, groupId: newAnchorId }
+            return a
+          })
         }
       }
       persist(next)
@@ -97,7 +138,7 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       const groupId = app?.groupId
       persist(
         apps.map((a) => {
-          if (groupId && a.groupId === groupId) {
+          if (groupId && (a.groupId === groupId || a.id === groupId)) {
             return { ...a, timeFrames: [...a.timeFrames, newTf] }
           }
           if (!groupId && a.id === appId) {
@@ -114,17 +155,28 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
     (appId: string, tfId: string) => {
       const app = apps.find((a) => a.id === appId)
       const groupId = app?.groupId
-      persist(
-        apps.map((a) => {
-          if (groupId && a.groupId === groupId) {
-            return { ...a, timeFrames: a.timeFrames.filter((tf) => tf.id !== tfId) }
-          }
-          if (!groupId && a.id === appId) {
-            return { ...a, timeFrames: a.timeFrames.filter((tf) => tf.id !== tfId) }
-          }
-          return a
-        }),
-      )
+      const updated = apps.map((a) => {
+        if (groupId && (a.groupId === groupId || a.id === groupId)) {
+          return { ...a, timeFrames: a.timeFrames.filter((tf) => tf.id !== tfId) }
+        }
+        if (!groupId && a.id === appId) {
+          return { ...a, timeFrames: a.timeFrames.filter((tf) => tf.id !== tfId) }
+        }
+        return a
+      })
+      // If the group now has no schedule, dissolve it
+      if (groupId) {
+        const anchor = updated.find((a) => a.id === groupId)
+        if (anchor && !anchor.blockedForever && anchor.timeFrames.length === 0) {
+          persist(updated.map((a) =>
+            a.groupId === groupId || a.id === groupId
+              ? { ...a, groupId: undefined, timeFrames: [], blockedForever: false }
+              : a,
+          ))
+          return
+        }
+      }
+      persist(updated)
     },
     [apps, persist],
   )
@@ -135,6 +187,7 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       if (!target) return
       const groupId = target.groupId ?? target.id
       const anchor = apps.find((a) => a.id === groupId) ?? target
+      if (!anchor.blockedForever && anchor.timeFrames.length === 0) return
       persist(
         apps.map((a) => {
           if (a.id === draggedId)
@@ -152,10 +205,29 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       const app = apps.find((a) => a.id === appId)
       if (!app) return
       const wasAnchor = app.id === app.groupId
+
+      if (wasAnchor) {
+        const members = apps.filter((a) => a.id !== appId && a.groupId === app.groupId)
+        if (members.length === 0) {
+          persist(apps.map((a) => a.id === appId ? { ...a, groupId: undefined } : a))
+          return
+        }
+        const newAnchorId = members[0].id
+        persist(
+          apps.map((a) => {
+            if (a.id === appId) return { ...a, groupId: undefined, timeFrames: [], blockedForever: false }
+            if (a.id === newAnchorId) return { ...a, groupId: a.id }
+            if (a.groupId === app.groupId) return { ...a, groupId: newAnchorId }
+            return a
+          }),
+        )
+        return
+      }
+
       persist(
         apps.map((a) =>
           a.id === appId
-            ? { ...a, groupId: undefined, ...(wasAnchor ? {} : { timeFrames: [] }) }
+            ? { ...a, groupId: undefined, timeFrames: [], blockedForever: false }
             : a,
         ),
       )
@@ -163,9 +235,16 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
     [apps, persist],
   )
 
+  const setAppUnblocked = useCallback(
+    (appId: string, unblocked: boolean) => {
+      persist(apps.map((a) => (a.id === appId ? { ...a, overrideUnblocked: unblocked } : a)))
+    },
+    [apps, persist],
+  )
+
   const value = useMemo(
-    () => ({ apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp }),
-    [apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp],
+    () => ({ apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp, setAppUnblocked }),
+    [apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp, setAppUnblocked],
   )
 
   return <AppBlockContext.Provider value={value}>{children}</AppBlockContext.Provider>

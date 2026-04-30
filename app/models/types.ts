@@ -11,6 +11,7 @@ export interface BlockedApp {
   brandColor?: string
   accentColor: string
   blockedForever: boolean
+  overrideUnblocked?: boolean
   timeFrames: TimeFrame[]
   createdAt: string
   groupId?: string

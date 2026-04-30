@@ -350,7 +350,7 @@ function AddTimeFrameModal({
 
 export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"AppDetail">) {
   const { appId } = route.params
-  const { getApp, updateApp, deleteApp, addTimeFrame, removeTimeFrame } = useAppBlock()
+  const { getApp, updateApp, deleteApp, addTimeFrame, removeTimeFrame, setAppUnblocked } = useAppBlock()
   const {
     theme: { colors, spacing },
   } = useAppTheme()
@@ -369,7 +369,7 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
   const timeFrames = anchor?.timeFrames ?? []
 
   const scheduleActive = anchor ? isInSchedule(timeFrames, now) : false
-  const effectivelyBlocked = (anchor?.blockedForever ?? false) || scheduleActive
+  const effectivelyBlocked = !app?.overrideUnblocked && ((anchor?.blockedForever ?? false) || scheduleActive)
 
   if (!app) {
     navigation.goBack()
@@ -390,15 +390,6 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
     ])
   }
 
-  const scheduleType = app.groupId
-    ? timeFrames.length > 0
-      ? formatDays(timeFrames[0].days)
-      : anchor?.blockedForever
-        ? "Always"
-        : "Group"
-    : timeFrames.length > 0
-      ? scheduleActive ? "Blocking Now" : "Scheduled"
-      : effectivelyBlocked ? "Blocked" : "No schedule"
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark">
@@ -431,9 +422,6 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
           />
           <View style={{ flex: 1 }}>
             <Text style={[$appName, { color: colors.text }]}>{app.name}</Text>
-            <View style={[$categoryBadge, { backgroundColor: colors.cardElevated, borderColor: colors.border }]}>
-              <Text style={[$categoryText, { color: colors.tintInactive }]}>{scheduleType}</Text>
-            </View>
           </View>
         </View>
 
@@ -467,7 +455,26 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
             </View>
             <Switch
               value={effectivelyBlocked}
-              onValueChange={(v) => updateApp(appId, { blockedForever: v })}
+              onValueChange={(v) => {
+                if (!v) {
+                  if (scheduleActive && !app.overrideUnblocked) {
+                    Alert.alert(
+                      "Unblock this app?",
+                      "A schedule is currently active. Are you sure you want to unblock this app?",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        { text: "Unblock", style: "destructive", onPress: () => setAppUnblocked(appId, true) },
+                      ],
+                    )
+                  } else {
+                    setAppUnblocked(appId, true)
+                  }
+                } else if (app.overrideUnblocked) {
+                  setAppUnblocked(appId, false)
+                } else {
+                  updateApp(appId, { blockedForever: true })
+                }
+              }}
               trackColor={{ false: colors.cardElevated, true: colors.tint }}
               ios_backgroundColor={colors.cardElevated}
             />
@@ -499,15 +506,6 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
           </TouchableOpacity>
         </View>
 
-        {/* Motivation note */}
-        <View
-          style={[$motivationCard, { backgroundColor: colors.accentBg, borderColor: colors.accentBorder }]}
-        >
-          <Text style={[$motivationTitle, { color: colors.tint }]}>Why you blocked this</Text>
-          <Text style={[$motivationText, { color: colors.text }]}>
-            "Stop mindless scrolling — be more present."
-          </Text>
-        </View>
       </ScrollView>
 
       <AddTimeFrameModal
@@ -565,18 +563,6 @@ const $appName: TextStyle = {
   fontWeight: "700",
 }
 
-const $categoryBadge: ViewStyle = {
-  alignSelf: "flex-start",
-  paddingHorizontal: 8,
-  paddingVertical: 3,
-  borderRadius: 8,
-  borderWidth: 1,
-}
-
-const $categoryText: TextStyle = {
-  fontSize: 11,
-  fontWeight: "600",
-}
 
 const $chartCard: ViewStyle = {
   borderRadius: 16,
@@ -737,24 +723,6 @@ const $addTfText: TextStyle = {
   fontWeight: "600",
 }
 
-const $motivationCard: ViewStyle = {
-  borderRadius: 14,
-  padding: 14,
-  borderWidth: 1,
-}
-
-const $motivationTitle: TextStyle = {
-  fontSize: 11,
-  fontWeight: "700",
-  letterSpacing: 0.3,
-  marginBottom: 5,
-}
-
-const $motivationText: TextStyle = {
-  fontSize: 13,
-  lineHeight: 20,
-  fontStyle: "italic",
-}
 
 const $modalOverlay: ViewStyle = {
   flex: 1,

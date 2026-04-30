@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
+  Alert,
   ActivityIndicator,
   Dimensions,
   Modal,
@@ -191,10 +192,10 @@ function AppCardContent({
   showSchedule?: boolean
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
-  const { updateApp } = useAppBlock()
+  const { updateApp, setAppUnblocked } = useAppBlock()
   const now = useNow()
   const scheduleActive = isInSchedule(app.timeFrames, now)
-  const effectivelyBlocked = app.blockedForever || scheduleActive
+  const effectivelyBlocked = !app.overrideUnblocked && (app.blockedForever || scheduleActive)
 
   const scheduleText =
     app.timeFrames.length > 0
@@ -234,7 +235,26 @@ function AppCardContent({
           </View>
           <Switch
             value={effectivelyBlocked}
-            onValueChange={(v) => updateApp(app.id, { blockedForever: v })}
+            onValueChange={(v) => {
+              if (!v) {
+                if (scheduleActive && !app.overrideUnblocked) {
+                  Alert.alert(
+                    "Unblock this app?",
+                    "A schedule is currently active. Are you sure you want to unblock this app?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      { text: "Unblock", style: "destructive", onPress: () => setAppUnblocked(app.id, true) },
+                    ],
+                  )
+                } else {
+                  setAppUnblocked(app.id, true)
+                }
+              } else if (app.overrideUnblocked) {
+                setAppUnblocked(app.id, false)
+              } else {
+                updateApp(app.id, { blockedForever: true })
+              }
+            }}
             trackColor={{ false: colors.cardElevated, true: colors.tint }}
             ios_backgroundColor={colors.cardElevated}
           />
@@ -410,6 +430,9 @@ function GroupContainer({
   registerLayout: (appId: string, layout: { y: number; height: number }) => void
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
+  const now = useNow()
+  const isBlocking = anchorApp.blockedForever || isInSchedule(anchorApp.timeFrames, now)
+
   const label =
     anchorApp.timeFrames.length > 0
       ? formatDays(anchorApp.timeFrames[0].days)
@@ -427,16 +450,16 @@ function GroupContainer({
       <View
         style={[
           $groupContainer,
-          { borderColor: colors.accentBorder },
+          {
+            borderColor: isBlocking ? colors.tint : colors.accentBorder,
+            borderWidth: isBlocking ? 2 : 1.5,
+          },
         ]}
       >
         {/* Header strip */}
         <View style={[$groupHeader, { backgroundColor: colors.accentBg }]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Text style={[$groupLabel, { color: colors.tint }]}>{label}</Text>
-            {anchorApp.blockedForever && (
-              <Text style={[$groupActive, { color: colors.tint }]}>Active</Text>
-            )}
             {timeRange && (
               <Text style={[$groupTime, { color: colors.tintInactive }]}>{timeRange}</Text>
             )}
@@ -780,6 +803,12 @@ export function AppsScreen() {
       let found: string | null = null
       for (const [id, layout] of Object.entries(cardLayouts.current)) {
         if (id === draggingId) continue
+        const targetApp = apps.find((a) => a.id === id)
+        if (targetApp) {
+          const anchorId = targetApp.groupId ?? targetApp.id
+          const anchor = apps.find((a) => a.id === anchorId) ?? targetApp
+          if (!anchor.blockedForever && anchor.timeFrames.length === 0) continue
+        }
         if (screenY >= layout.y && screenY <= layout.y + layout.height) {
           found = id
           break
@@ -787,7 +816,7 @@ export function AppsScreen() {
       }
       setDragTargetId(found)
     },
-    [ghostX, ghostY, spacing.md],
+    [ghostX, ghostY, spacing.md, apps],
   )
 
   const onDragEnd = useCallback(() => {
@@ -1101,11 +1130,6 @@ const $groupHeader: ViewStyle = {
 
 const $groupLabel: TextStyle = {
   fontSize: 12,
-  fontWeight: "700",
-}
-
-const $groupActive: TextStyle = {
-  fontSize: 11,
   fontWeight: "700",
 }
 
