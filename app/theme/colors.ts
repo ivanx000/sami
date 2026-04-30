@@ -8,9 +8,9 @@ const palette = {
   warmText:         '#1A1714',
   warmTextDim:      '#8A7F72',
   warmTextFaint:    '#A8A09A',
-  warmAccent:       '#2E7D52',
-  warmAccentBg:     '#EDF5F0',
-  warmAccentBorder: '#C3DCCB',
+  warmAccent:       '#0A7A40',
+  warmAccentBg:     '#E6F4EC',
+  warmAccentBorder: '#B0D4BF',
   warmDanger:       '#C0392B',
   warmDangerBg:     '#FDF1F0',
 
