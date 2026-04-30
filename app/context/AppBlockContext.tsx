@@ -54,7 +54,15 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const updateApp = useCallback(
     (id: string, updates: Partial<BlockedApp>) => {
-      persist(apps.map((a) => (a.id === id ? { ...a, ...updates } : a)))
+      const app = apps.find((a) => a.id === id)
+      const groupId = app?.groupId
+      persist(
+        apps.map((a) => {
+          if (groupId && a.groupId === groupId) return { ...a, ...updates }
+          if (!groupId && a.id === id) return { ...a, ...updates }
+          return a
+        }),
+      )
     },
     [apps, persist],
   )
@@ -85,14 +93,17 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
   const addTimeFrame = useCallback(
     (appId: string, tf: Omit<TimeFrame, "id">) => {
       const newTf: TimeFrame = { ...tf, id: Date.now().toString() }
+      const app = apps.find((a) => a.id === appId)
+      const groupId = app?.groupId
       persist(
         apps.map((a) => {
-          if (a.id !== appId) return a
-          return {
-            ...a,
-            timeFrames: [...a.timeFrames, newTf],
-            groupId: a.groupId ?? a.id,
+          if (groupId && a.groupId === groupId) {
+            return { ...a, timeFrames: [...a.timeFrames, newTf] }
           }
+          if (!groupId && a.id === appId) {
+            return { ...a, timeFrames: [...a.timeFrames, newTf], groupId: a.id }
+          }
+          return a
         }),
       )
     },
@@ -101,10 +112,18 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const removeTimeFrame = useCallback(
     (appId: string, tfId: string) => {
+      const app = apps.find((a) => a.id === appId)
+      const groupId = app?.groupId
       persist(
-        apps.map((a) =>
-          a.id === appId ? { ...a, timeFrames: a.timeFrames.filter((tf) => tf.id !== tfId) } : a,
-        ),
+        apps.map((a) => {
+          if (groupId && a.groupId === groupId) {
+            return { ...a, timeFrames: a.timeFrames.filter((tf) => tf.id !== tfId) }
+          }
+          if (!groupId && a.id === appId) {
+            return { ...a, timeFrames: a.timeFrames.filter((tf) => tf.id !== tfId) }
+          }
+          return a
+        }),
       )
     },
     [apps, persist],

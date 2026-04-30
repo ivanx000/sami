@@ -161,8 +161,7 @@ function TimeFrameRow({
   } = useAppTheme()
 
   return (
-    <View style={[$tfRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={[$tfAccent, { backgroundColor: accentColor }]} />
+    <View style={[$tfRow, { backgroundColor: colors.card }]}>
       <View style={$tfContent}>
         <Text style={[$tfDays, { color: colors.text }]}>{formatDays(tf.days)}</Text>
         <Text style={[$tfTime, { color: colors.tintInactive }]}>
@@ -365,8 +364,12 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
   const iconUrls = useAppIcons(curatedApp ? [curatedApp] : [])
   const iconUrl = curatedApp ? iconUrls[curatedApp.id] : undefined
 
-  const scheduleActive = app ? isInSchedule(app.timeFrames, now) : false
-  const effectivelyBlocked = (app?.blockedForever ?? false) || scheduleActive
+  // For grouped apps, always derive schedule from the anchor so all members stay in sync
+  const anchor = app?.groupId ? (getApp(app.groupId) ?? app) : app
+  const timeFrames = anchor?.timeFrames ?? []
+
+  const scheduleActive = anchor ? isInSchedule(timeFrames, now) : false
+  const effectivelyBlocked = (anchor?.blockedForever ?? false) || scheduleActive
 
   if (!app) {
     navigation.goBack()
@@ -387,9 +390,15 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
     ])
   }
 
-  const scheduleType = app.timeFrames.length > 0
-    ? scheduleActive ? "Blocking Now" : "Scheduled"
-    : effectivelyBlocked ? "Blocked" : "No schedule"
+  const scheduleType = app.groupId
+    ? timeFrames.length > 0
+      ? formatDays(timeFrames[0].days)
+      : anchor?.blockedForever
+        ? "Always"
+        : "Group"
+    : timeFrames.length > 0
+      ? scheduleActive ? "Blocking Now" : "Scheduled"
+      : effectivelyBlocked ? "Blocked" : "No schedule"
 
   return (
     <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark">
@@ -429,7 +438,7 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
         </View>
 
         {/* Usage chart */}
-        <UsageChart timeFrames={app.timeFrames} colors={colors} />
+        <UsageChart timeFrames={timeFrames} colors={colors} />
 
         {/* Stats tiles */}
         <View style={$statsTiles}>
@@ -464,10 +473,10 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
             />
           </View>
 
-          {app.timeFrames.length > 0 && (
+          {timeFrames.length > 0 && (
             <>
               <View style={[$divider, { backgroundColor: colors.separator }]} />
-              {app.timeFrames.map((tf, idx) => (
+              {timeFrames.map((tf, idx) => (
                 <View key={tf.id}>
                   {idx > 0 && <View style={[$divider, { backgroundColor: colors.separator }]} />}
                   <TimeFrameRow
@@ -505,7 +514,7 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={(tf) => addTimeFrame(appId, tf)}
-        existingFrames={app.timeFrames}
+        existingFrames={timeFrames}
         accentColor={app.accentColor}
       />
     </Screen>
@@ -692,21 +701,16 @@ const $divider: ViewStyle = {
 const $tfRow: ViewStyle = {
   flexDirection: "row",
   alignItems: "center",
-  overflow: "hidden",
-  paddingRight: 14,
+  paddingHorizontal: 14,
+  paddingVertical: 14,
   gap: 14,
-}
-
-const $tfAccent: ViewStyle = {
-  width: 4,
-  alignSelf: "stretch",
-  minHeight: 52,
 }
 
 const $tfContent: ViewStyle = {
   flex: 1,
-  paddingVertical: 14,
-  gap: 3,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
 }
 
 const $tfDays: TextStyle = {
