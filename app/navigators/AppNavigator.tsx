@@ -2,9 +2,11 @@ import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
 import Config from "@/config"
-import { useAuth } from "@/context/AuthContext"
+import { useAppState } from "@/context/AppStateContext"
+import { usePurchases } from "@/context/PurchasesContext"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
-import { LoginScreen } from "@/screens/LoginScreen"
+import { OnboardingScreen } from "@/screens/OnboardingScreen"
+import { PaywallScreen } from "@/screens/PaywallScreen"
 import { useAppTheme } from "@/theme/context"
 
 import { MainNavigator } from "./MainNavigator"
@@ -16,10 +18,14 @@ const exitRoutes = Config.exitRoutes
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = () => {
-  const { isAuthenticated } = useAuth()
+  const { hasCompletedOnboarding } = useAppState()
+  const { isPremium, isLoading } = usePurchases()
   const {
     theme: { colors },
   } = useAppTheme()
+
+  const showOnboarding = !hasCompletedOnboarding
+  const showPaywall = hasCompletedOnboarding && !isPremium && !isLoading
 
   return (
     <Stack.Navigator
@@ -28,12 +34,14 @@ const AppStack = () => {
         navigationBarColor: colors.background,
         contentStyle: { backgroundColor: colors.background },
       }}
-      initialRouteName={isAuthenticated ? "Main" : "Login"}
+      initialRouteName={showOnboarding ? "Onboarding" : showPaywall ? "Paywall" : "Main"}
     >
-      {isAuthenticated ? (
-        <Stack.Screen name="Main" component={MainNavigator} />
+      {showOnboarding ? (
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      ) : showPaywall ? (
+        <Stack.Screen name="Paywall" component={PaywallScreen} />
       ) : (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Main" component={MainNavigator} />
       )}
     </Stack.Navigator>
   )

@@ -2,6 +2,10 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
 import { AppDetailScreen } from "@/screens/GoalDetailScreen"
 import { AppsScreen } from "@/screens/GoalsScreen"
+import { FocusSessionScreen } from "@/screens/FocusSessionScreen"
+import { InsightsScreen } from "@/screens/InsightsScreen"
+import { ReflectionScreen } from "@/screens/ReflectionScreen"
+import { SettingsScreen } from "@/screens/SettingsScreen"
 import { useAppTheme } from "@/theme/context"
 
 import type { MainStackParamList } from "./navigationTypes"
@@ -22,6 +26,12 @@ export function GoalsNavigator() {
     >
       <Stack.Screen name="AppsList" component={AppsScreen} />
       <Stack.Screen name="AppDetail" component={AppDetailScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="FocusSession" component={FocusSessionScreen} />
+      <Stack.Screen name="Reflection" component={ReflectionScreen} />
+      {/* GoalDetail navigates back to the main list after a reflection session */}
+      <Stack.Screen name="GoalDetail" component={AppsScreen} />
+      <Stack.Screen name="Insights" component={InsightsScreen} />
     </Stack.Navigator>
   )
 }

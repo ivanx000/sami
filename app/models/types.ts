@@ -1,3 +1,5 @@
+import type { GoalAccentColor } from "@/theme/colors"
+
 export interface TimeFrame {
   id: string
   startTime: string
@@ -15,4 +17,27 @@ export interface BlockedApp {
   timeFrames: TimeFrame[]
   createdAt: string
   groupId?: string
+}
+
+export interface Goal {
+  id: string
+  name: string
+  description?: string
+  accentColor: GoalAccentColor
+  isArchived: boolean
+  createdAt: string
+}
+
+export interface FocusSession {
+  id: string
+  goalId: string
+  startedAt: string
+  endedAt: string
+  plannedDuration: number
+  actualDuration: number
+  reflection: string
+  focusScore: number
+  wasDistracted: boolean
+  distractionNote?: string
+  completedFully: boolean
 }

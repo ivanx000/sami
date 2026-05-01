@@ -1,6 +1,5 @@
 import { ComponentProps } from "react"
 import {
-  CompositeScreenProps,
   NavigationContainer,
   NavigatorScreenParams,
 } from "@react-navigation/native"
@@ -9,10 +8,16 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 export type MainStackParamList = {
   AppsList: undefined
   AppDetail: { appId: string }
+  Settings: undefined
+  FocusSession: { goalId: string; plannedDuration: number }
+  Reflection: { goalId: string }
+  GoalDetail: { goalId: string }
+  Insights: undefined
 }
 
 export type AppStackParamList = {
-  Login: undefined
+  Onboarding: undefined
+  Paywall: undefined
   Main: NavigatorScreenParams<MainStackParamList>
 }
 

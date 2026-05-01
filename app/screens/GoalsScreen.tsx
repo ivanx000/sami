@@ -94,11 +94,13 @@ type RenderItem =
 
 function StatsHero({
   colors,
+  isEmpty,
 }: {
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
+  isEmpty?: boolean
 }) {
-  const weeklyMins = [42, 78, 55, 134, 90, 18, 61]
-  const maxMins = Math.max(...weeklyMins)
+  const weeklyMins = isEmpty ? [0, 0, 0, 0, 0, 0, 0] : [42, 78, 55, 134, 90, 18, 61]
+  const maxMins = Math.max(...weeklyMins, 1)
   const totalMins = weeklyMins.reduce((a, b) => a + b, 0)
   const hh = Math.floor(totalMins / 60)
   const mm = totalMins % 60
@@ -118,23 +120,23 @@ function StatsHero({
           <Svg width={13} height={13} viewBox="0 0 13 13">
             <Path
               d="M6.5 1C6.5 1 9.5 3.5 9.5 6C9.5 7.1 9.0 8 8.2 8.6C8.3 8.1 8.2 7.5 7.9 7C7.4 8 6.5 8.5 6.5 9.5C6.5 10.6 7.3 11.5 8.2 11.9C7.7 12 7.1 12 6.5 12C4.0 12 2 10 2 7.5C2 4.5 6.5 1 6.5 1Z"
-              fill={colors.tint}
+              fill={isEmpty ? colors.tintInactive : colors.tint}
             />
           </Svg>
-          <Text style={[$statNumber, { color: colors.text }]}>12</Text>
+          <Text style={[$statNumber, { color: colors.text }]}>{isEmpty ? 0 : 12}</Text>
           <Text style={[$statUnit, { color: colors.tintInactive }]}>day streak</Text>
         </View>
         <View style={$statItem}>
           <Svg width={13} height={13} viewBox="0 0 13 13">
-            <Circle cx="6.5" cy="6.5" r="5" stroke={colors.tint} strokeWidth="1.4" fill="none" />
+            <Circle cx="6.5" cy="6.5" r="5" stroke={isEmpty ? colors.tintInactive : colors.tint} strokeWidth="1.4" fill="none" />
             <Path
               d="M6.5 3.5v3l2 1.2"
-              stroke={colors.tint}
+              stroke={isEmpty ? colors.tintInactive : colors.tint}
               strokeWidth="1.4"
               strokeLinecap="round"
             />
           </Svg>
-          <Text style={[$statNumber, { color: colors.text }]}>2h 14m</Text>
+          <Text style={[$statNumber, { color: colors.text }]}>{isEmpty ? "0m" : "2h 14m"}</Text>
           <Text style={[$statUnit, { color: colors.tintInactive }]}>saved today</Text>
         </View>
       </View>
@@ -149,12 +151,7 @@ function StatsHero({
               {
                 flex: 1,
                 height: m > 0 ? Math.max((m / maxMins) * 52, 4) : 3,
-                backgroundColor:
-                  i === today
-                    ? colors.tint
-                    : m > 0
-                      ? colors.tint + "55"
-                      : colors.separator,
+                backgroundColor: colors.separator,
               },
             ]}
           />
@@ -948,7 +945,7 @@ export function AppsScreen() {
   const ghostApp = dragState ? apps.find((a) => a.id === dragState.appId) : null
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark">
+    <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark" contentContainerStyle={$screenContent}>
       {/* Header */}
       <View style={[$header, { paddingHorizontal: spacing.md }]}>
         <Text style={[$appTitle, { color: colors.text }]}>sami</Text>
@@ -956,6 +953,7 @@ export function AppsScreen() {
           <TouchableOpacity
             style={[$navIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
             activeOpacity={0.7}
+            onPress={() => navigation.navigate("Settings")}
           >
             <Cog6ToothIcon size={16} color={colors.tintInactive} strokeWidth={2} />
           </TouchableOpacity>
@@ -982,29 +980,24 @@ export function AppsScreen() {
       />
 
       {apps.length === 0 ? (
-        <View style={$empty}>
-          <Text style={[$emptyTitle, { color: colors.text }]}>No apps blocked</Text>
-          <Text style={[$emptySubtitle, { color: colors.tintInactive }]}>
-            Tap + to block your first app
-          </Text>
-          <TouchableOpacity
-            style={[$addButton, { backgroundColor: colors.tint }]}
-            onPress={() => setShowModal(true)}
-            activeOpacity={0.85}
-          >
-            <View style={$addButtonInner}>
-              <PlusIcon size={15} color="#FFFFFF" strokeWidth={2.5} />
-              <Text style={$addButtonText}>Block an App</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+        <>
+          <View style={{ paddingHorizontal: spacing.md }}>
+            <StatsHero colors={colors} isEmpty />
+          </View>
+          <View style={$empty}>
+            <Text style={[$emptyTitle, { color: colors.text }]}>No apps blocked</Text>
+            <Text style={[$emptySubtitle, { color: colors.tintInactive }]}>
+              Tap + to block your first app
+            </Text>
+          </View>
+        </>
       ) : (
         <ScrollView
           scrollEnabled={!dragState}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             $listContent,
-            { paddingBottom: insets.bottom + 24, paddingHorizontal: spacing.md },
+            { paddingBottom: 10, paddingHorizontal: spacing.md },
           ]}
         >
           {/* Stats hero */}
@@ -1091,20 +1084,22 @@ export function AppsScreen() {
               </View>
             </View>
           )}
-
-          {/* Bottom CTA */}
-          <TouchableOpacity
-            style={[$addButton, { backgroundColor: colors.tint }]}
-            onPress={() => setShowModal(true)}
-            activeOpacity={0.85}
-          >
-            <View style={$addButtonInner}>
-              <PlusIcon size={15} color="#FFFFFF" strokeWidth={2.5} />
-              <Text style={$addButtonText}>Block an App</Text>
-            </View>
-          </TouchableOpacity>
         </ScrollView>
       )}
+
+      {/* Fixed bottom button */}
+      <View style={[$emptyButtonContainer, { paddingHorizontal: spacing.md, paddingBottom: insets.bottom + 16 }]}>
+        <TouchableOpacity
+          style={[$addButton, { backgroundColor: colors.tint }]}
+          onPress={() => setShowModal(true)}
+          activeOpacity={0.85}
+        >
+          <View style={$addButtonInner}>
+            <PlusIcon size={15} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={$addButtonText}>Block an App</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
 
       {/* Ghost card overlay */}
       {ghostApp && dragState && (
@@ -1125,6 +1120,11 @@ export function AppsScreen() {
 }
 
 // ---- Styles ----
+
+const $screenContent: ViewStyle = {
+  flex: 1,
+  justifyContent: "flex-start",
+}
 
 const $header: ViewStyle = {
   flexDirection: "row",
@@ -1303,7 +1303,10 @@ const $emptyTitle: TextStyle = {
 const $emptySubtitle: TextStyle = {
   fontSize: 15,
   textAlign: "center",
-  marginBottom: 24,
+}
+
+const $emptyButtonContainer: ViewStyle = {
+  width: "100%",
 }
 
 const $addButton: ViewStyle = {
