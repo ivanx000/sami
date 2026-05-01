@@ -136,6 +136,37 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       const newTf: TimeFrame = { ...tf, id: Date.now().toString() }
       const app = apps.find((a) => a.id === appId)
       const groupId = app?.groupId
+
+      // App is in a group and already has timeframes — pull it out as standalone
+      if (groupId && app && app.timeFrames.length > 0) {
+        const newTfs = [...app.timeFrames, newTf]
+        const remainingInGroup = apps.filter((a) => a.id !== appId && a.groupId === groupId)
+
+        let next = apps.map((a) =>
+          a.id === appId ? { ...a, groupId: a.id, timeFrames: newTfs } : a,
+        )
+
+        if (remainingInGroup.length <= 1) {
+          // 0 or 1 left — dissolve the old group
+          next = next.map((a) =>
+            a.groupId === groupId && a.id !== appId
+              ? { ...a, groupId: undefined, timeFrames: [], blockedForever: false }
+              : a,
+          )
+        } else if (appId === groupId) {
+          // Pulled app was the anchor — reassign anchor to first remaining member
+          const newAnchorId = remainingInGroup[0].id
+          next = next.map((a) => {
+            if (a.id === newAnchorId) return { ...a, groupId: a.id }
+            if (a.groupId === groupId && a.id !== appId) return { ...a, groupId: newAnchorId }
+            return a
+          })
+        }
+
+        persist(next)
+        return
+      }
+
       persist(
         apps.map((a) => {
           if (groupId && (a.groupId === groupId || a.id === groupId)) {
