@@ -431,7 +431,8 @@ function GroupContainer({
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
   const now = useNow()
-  const isBlocking = anchorApp.blockedForever || isInSchedule(anchorApp.timeFrames, now)
+  const allDeselected = groupApps.every((app) => app.overrideUnblocked)
+  const isBlocking = !allDeselected && isInSchedule(anchorApp.timeFrames, now)
 
   const label =
     anchorApp.timeFrames.length > 0
