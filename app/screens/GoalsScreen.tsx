@@ -44,6 +44,7 @@ import { Text } from "@/components/Text"
 import { useAppBlock } from "@/context/AppBlockContext"
 import { CURATED_APPS } from "@/data/curatedApps"
 import { useAppIcons } from "@/hooks/useAppIcons"
+import { useBlockStats } from "@/hooks/useBlockStats"
 import { useInstalledApps } from "@/hooks/useInstalledApps"
 import { useNow } from "@/hooks/useNow"
 import type { BlockedApp, TimeFrame } from "@/models/types"
@@ -92,26 +93,36 @@ type RenderItem =
 
 // ---- Stats Hero ----
 
+function formatMinutes(mins: number): string {
+  if (mins < 60) return `${mins}m`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m === 0 ? `${h}h` : `${h}h ${m}m`
+}
+
 function StatsHero({
   colors,
-  isEmpty,
+  weeklyMinutes,
+  totalWeekMinutes,
+  todayMinutes,
+  streak,
 }: {
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
-  isEmpty?: boolean
+  weeklyMinutes: number[]
+  totalWeekMinutes: number
+  todayMinutes: number
+  streak: number
 }) {
-  const weeklyMins = isEmpty ? [0, 0, 0, 0, 0, 0, 0] : [42, 78, 55, 134, 90, 18, 61]
-  const maxMins = Math.max(...weeklyMins, 1)
-  const totalMins = weeklyMins.reduce((a, b) => a + b, 0)
-  const hh = Math.floor(totalMins / 60)
-  const mm = totalMins % 60
-  const today = new Date().getDay() // 0=Sun
+  const maxMins = Math.max(...weeklyMinutes, 1)
+  const today = new Date().getDay()
+  const hasData = totalWeekMinutes > 0
 
   return (
     <View style={$statsHero}>
       <View style={{ marginBottom: 4 }}>
         <Text style={[$statsLabel, { color: colors.tintInactive }]}>Saved this week</Text>
         <Text style={[$statsValue, { color: colors.text }]}>
-          {hh}h {mm}m
+          {formatMinutes(totalWeekMinutes)}
         </Text>
       </View>
 
@@ -120,30 +131,30 @@ function StatsHero({
           <Svg width={13} height={13} viewBox="0 0 13 13">
             <Path
               d="M6.5 1C6.5 1 9.5 3.5 9.5 6C9.5 7.1 9.0 8 8.2 8.6C8.3 8.1 8.2 7.5 7.9 7C7.4 8 6.5 8.5 6.5 9.5C6.5 10.6 7.3 11.5 8.2 11.9C7.7 12 7.1 12 6.5 12C4.0 12 2 10 2 7.5C2 4.5 6.5 1 6.5 1Z"
-              fill={isEmpty ? colors.tintInactive : colors.tint}
+              fill={hasData ? colors.tint : colors.tintInactive}
             />
           </Svg>
-          <Text style={[$statNumber, { color: colors.text }]}>{isEmpty ? 0 : 12}</Text>
+          <Text style={[$statNumber, { color: colors.text }]}>{streak}</Text>
           <Text style={[$statUnit, { color: colors.tintInactive }]}>day streak</Text>
         </View>
         <View style={$statItem}>
           <Svg width={13} height={13} viewBox="0 0 13 13">
-            <Circle cx="6.5" cy="6.5" r="5" stroke={isEmpty ? colors.tintInactive : colors.tint} strokeWidth="1.4" fill="none" />
+            <Circle cx="6.5" cy="6.5" r="5" stroke={hasData ? colors.tint : colors.tintInactive} strokeWidth="1.4" fill="none" />
             <Path
               d="M6.5 3.5v3l2 1.2"
-              stroke={isEmpty ? colors.tintInactive : colors.tint}
+              stroke={hasData ? colors.tint : colors.tintInactive}
               strokeWidth="1.4"
               strokeLinecap="round"
             />
           </Svg>
-          <Text style={[$statNumber, { color: colors.text }]}>{isEmpty ? "0m" : "2h 14m"}</Text>
+          <Text style={[$statNumber, { color: colors.text }]}>{formatMinutes(todayMinutes)}</Text>
           <Text style={[$statUnit, { color: colors.tintInactive }]}>saved today</Text>
         </View>
       </View>
 
       {/* Weekly bar chart */}
       <View style={$chartBars}>
-        {weeklyMins.map((m, i) => (
+        {weeklyMinutes.map((m, i) => (
           <View
             key={i}
             style={[
@@ -151,7 +162,12 @@ function StatsHero({
               {
                 flex: 1,
                 height: m > 0 ? Math.max((m / maxMins) * 52, 4) : 3,
-                backgroundColor: colors.separator,
+                backgroundColor:
+                  i === today && m > 0
+                    ? colors.tint
+                    : m > 0
+                      ? colors.tint + "55"
+                      : colors.separator,
               },
             ]}
           />
@@ -550,7 +566,7 @@ const SHEET_HEIGHT = Dimensions.get("window").height * 0.82
 const PICKER_CATEGORIES = ["All", "Social", "Video", "Gaming", "Shopping", "Messaging", "Music", "News", "Dating", "Browser", "Food"]
 
 function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { addApp, apps } = useAppBlock()
+  const { addApps, apps } = useAppBlock()
   const {
     theme: { colors },
   } = useAppTheme()
@@ -594,10 +610,11 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
   }
 
   const handleDone = () => {
-    for (const id of selectedIds) {
+    const entries = [...selectedIds].flatMap((id) => {
       const app = installedApps.find((a) => a.id === id)
-      if (app) addApp(app.name, app.brandColor)
-    }
+      return app ? [{ name: app.name, brandColor: app.brandColor }] : []
+    })
+    if (entries.length > 0) addApps(entries)
     handleClose()
   }
 
@@ -793,13 +810,21 @@ function GhostCard({
 // ---- Main Screen ----
 
 export function AppsScreen() {
-  const { apps, groupApps, ungroupApp } = useAppBlock()
+  const { apps, groupApps, ungroupApp, markDayActive } = useAppBlock()
   const {
     theme: { colors, spacing },
   } = useAppTheme()
   const navigation = useNavigation<NavProp>()
   const insets = useSafeAreaInsets()
   const [showModal, setShowModal] = useState(false)
+
+  const stats = useBlockStats()
+  const now = useNow()
+
+  useEffect(() => {
+    if (apps.length > 0) markDayActive()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now.toDateString(), apps.length])
 
   const iconUrls = useAppIcons(CURATED_APPS)
   const iconUrlByName = useMemo(() => {
@@ -982,7 +1007,7 @@ export function AppsScreen() {
       {apps.length === 0 ? (
         <>
           <View style={{ paddingHorizontal: spacing.md }}>
-            <StatsHero colors={colors} isEmpty />
+            <StatsHero colors={colors} {...stats} />
           </View>
           <View style={$empty}>
             <Text style={[$emptyTitle, { color: colors.text }]}>No apps blocked</Text>
@@ -1001,7 +1026,7 @@ export function AppsScreen() {
           ]}
         >
           {/* Stats hero */}
-          <StatsHero colors={colors} />
+          <StatsHero colors={colors} {...stats} />
 
           {/* App list */}
           {renderItems.map((item) => {

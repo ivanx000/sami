@@ -3,10 +3,16 @@ import { useMMKVString } from "react-native-mmkv"
 
 import { GOAL_ACCENT_COLORS } from "@/theme/colors"
 import type { BlockedApp, TimeFrame } from "@/models/types"
+import { isInSchedule } from "@/utils/scheduleUtils"
+
+type StreakData = { count: number; lastDate: string }
 
 type AppBlockContextType = {
   apps: BlockedApp[]
+  streak: number
+  markDayActive: () => void
   addApp: (name: string, brandColor?: string) => BlockedApp
+  addApps: (entries: { name: string; brandColor?: string }[]) => void
   updateApp: (id: string, updates: Partial<BlockedApp>) => void
   deleteApp: (id: string) => void
   getApp: (id: string) => BlockedApp | undefined
@@ -22,6 +28,7 @@ export const AppBlockContext = createContext<AppBlockContextType | null>(null)
 export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
   const [raw, setRaw] = useMMKVString("AppBlockContext.apps")
   const rawRef = useRef(raw)
+  const [streakRaw, setStreakRaw] = useMMKVString("AppBlockContext.streak")
 
   const apps: BlockedApp[] = useMemo(() => {
     try {
@@ -32,6 +39,23 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [raw])
 
   const persist = useCallback((next: BlockedApp[]) => setRaw(JSON.stringify(next)), [setRaw])
+
+  const streakData: StreakData = useMemo(() => {
+    try { return streakRaw ? JSON.parse(streakRaw) : { count: 0, lastDate: "" } } catch { return { count: 0, lastDate: "" } }
+  }, [streakRaw])
+  const streakDataRef = useRef(streakData)
+  useEffect(() => { streakDataRef.current = streakData }, [streakData])
+
+  const markDayActive = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    if (streakDataRef.current.lastDate === today) return
+    setStreakRaw(JSON.stringify({ count: streakDataRef.current.count + 1, lastDate: today }))
+  }, [setStreakRaw])
+
+  const resetStreak = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    setStreakRaw(JSON.stringify({ count: 0, lastDate: today }))
+  }, [setStreakRaw])
 
   // One-time migration: sync timeFrames/groupId across groups with stale data
   useEffect(() => {
@@ -66,6 +90,32 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       if (changed) setRaw(JSON.stringify(result))
     } catch {}
   }, []) // intentionally runs once on mount to fix stale persisted data
+
+  const addApps = useCallback(
+    (entries: { name: string; brandColor?: string }[]) => {
+      const now = Date.now()
+      const existing = [...apps]
+      const toAdd: BlockedApp[] = entries.map((entry, i) => {
+        const usedColors = existing.map((a) => a.accentColor)
+        const accentColor =
+          GOAL_ACCENT_COLORS.find((c) => !usedColors.includes(c)) ??
+          GOAL_ACCENT_COLORS[existing.length % GOAL_ACCENT_COLORS.length]
+        const app: BlockedApp = {
+          id: (now + i).toString(),
+          name: entry.name,
+          brandColor: entry.brandColor,
+          accentColor,
+          blockedForever: false,
+          timeFrames: [],
+          createdAt: new Date().toISOString(),
+        }
+        existing.push(app)
+        return app
+      })
+      persist([...apps, ...toAdd])
+    },
+    [apps, persist],
+  )
 
   const addApp = useCallback(
     (name: string, brandColor?: string): BlockedApp => {
@@ -279,14 +329,18 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const setAppUnblocked = useCallback(
     (appId: string, unblocked: boolean) => {
+      if (unblocked) {
+        const app = apps.find((a) => a.id === appId)
+        if (app && isInSchedule(app.timeFrames, new Date())) resetStreak()
+      }
       persist(apps.map((a) => (a.id === appId ? { ...a, overrideUnblocked: unblocked } : a)))
     },
-    [apps, persist],
+    [apps, persist, resetStreak],
   )
 
   const value = useMemo(
-    () => ({ apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp, setAppUnblocked }),
-    [apps, addApp, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp, setAppUnblocked],
+    () => ({ apps, streak: streakData.count, markDayActive, addApp, addApps, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp, setAppUnblocked }),
+    [apps, streakData.count, markDayActive, addApp, addApps, updateApp, deleteApp, getApp, addTimeFrame, removeTimeFrame, groupApps, ungroupApp, setAppUnblocked],
   )
 
   return <AppBlockContext.Provider value={value}>{children}</AppBlockContext.Provider>
