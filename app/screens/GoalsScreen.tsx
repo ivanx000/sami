@@ -465,16 +465,16 @@ function GroupContainer({
       rows.push(
         <View key="__preview__" style={{ backgroundColor: colors.card }}>
           {showDivider && <View style={[$groupDivider, { backgroundColor: colors.separator }]} />}
-          <View style={{ opacity: 0.5 }}>
-            <View
-              style={{
-                borderRadius: 14,
-                borderWidth: 1.5,
-                borderStyle: "dashed",
-                borderColor: colors.tint,
-                overflow: "hidden",
-              }}
-            >
+          <View
+            style={{
+              borderRadius: 14,
+              borderWidth: 1.5,
+              borderStyle: "dashed",
+              borderColor: colors.tint,
+              overflow: "hidden",
+            }}
+          >
+            <View style={{ opacity: 0.5 }}>
               <AppCardContent
                 app={dragPreviewApp}
                 iconUrl={iconUrlByName[dragPreviewApp.name]}
@@ -930,18 +930,19 @@ export function AppsScreen() {
 
   const renderItems = useMemo((): RenderItem[] => {
     const seenGroups = new Set<string>()
-    const result: RenderItem[] = []
+    const groups: RenderItem[] = []
+    const singles: RenderItem[] = []
     for (const app of apps) {
       if (!app.groupId) {
-        result.push({ type: "single", app })
+        singles.push({ type: "single", app })
       } else if (!seenGroups.has(app.groupId)) {
         seenGroups.add(app.groupId)
         const grpApps = apps.filter((a) => a.groupId === app.groupId)
         const anchor = grpApps.find((a) => a.id === app.groupId) ?? grpApps[0]
-        result.push({ type: "group", groupId: app.groupId, apps: grpApps, anchorApp: anchor })
+        groups.push({ type: "group", groupId: app.groupId, apps: grpApps, anchorApp: anchor })
       }
     }
-    return result
+    return [...groups, ...singles]
   }, [apps])
 
   const ghostApp = dragState ? apps.find((a) => a.id === dragState.appId) : null
@@ -1061,7 +1062,7 @@ export function AppsScreen() {
           })}
 
           {/* Ungroup drop zone */}
-          {draggingGroupedApp && (
+          {draggingGroupedApp && ghostApp && (
             <View
               ref={ungroupZoneRef}
               onLayout={() => {
@@ -1069,17 +1070,25 @@ export function AppsScreen() {
                   ungroupZoneLayout.current = { y, height: h }
                 })
               }}
-              style={[
-                $ungroupZone,
-                {
-                  borderColor: dragOverUngroup ? colors.tint : colors.accentBorder,
-                  backgroundColor: dragOverUngroup ? colors.accentBg : "transparent",
-                },
-              ]}
             >
-              <Text style={[$ungroupZoneText, { color: dragOverUngroup ? colors.tint : colors.tintInactive }]}>
-                Drop here to remove from group
-              </Text>
+              <View
+                style={{
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  borderStyle: "dashed",
+                  borderColor: dragOverUngroup ? colors.tint : colors.accentBorder,
+                  overflow: "hidden",
+                }}
+              >
+                <View style={{ opacity: 0.5 }}>
+                  <AppCardContent
+                    app={ghostApp}
+                    iconUrl={iconUrlByName[ghostApp.name]}
+                    showSchedule={false}
+                    colors={colors}
+                  />
+                </View>
+              </View>
             </View>
           )}
 
@@ -1210,19 +1219,6 @@ const $listContent: ViewStyle = {
   paddingTop: 4,
 }
 
-const $ungroupZone: ViewStyle = {
-  borderWidth: 1.5,
-  borderStyle: "dashed",
-  borderRadius: 14,
-  paddingVertical: 18,
-  alignItems: "center",
-  justifyContent: "center",
-}
-
-const $ungroupZoneText: TextStyle = {
-  fontSize: 13,
-  fontWeight: "600",
-}
 
 const $card: ViewStyle = {
   borderRadius: 16,
