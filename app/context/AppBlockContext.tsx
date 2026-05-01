@@ -198,7 +198,7 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       // If the group now has no schedule, dissolve it
       if (groupId) {
         const anchor = updated.find((a) => a.id === groupId)
-        if (anchor && !anchor.blockedForever && anchor.timeFrames.length === 0) {
+        if (anchor && anchor.timeFrames.length === 0) {
           persist(updated.map((a) =>
             a.groupId === groupId || a.id === groupId
               ? { ...a, groupId: undefined, timeFrames: [], blockedForever: false }
