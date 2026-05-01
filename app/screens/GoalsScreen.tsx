@@ -748,7 +748,7 @@ function GhostCard({
 // ---- Main Screen ----
 
 export function AppsScreen() {
-  const { apps, groupApps } = useAppBlock()
+  const { apps, groupApps, ungroupApp } = useAppBlock()
   const {
     theme: { colors, spacing },
   } = useAppTheme()
@@ -768,12 +768,19 @@ export function AppsScreen() {
   // Drag state
   const [dragState, setDragState] = useState<DragState | null>(null)
   const [dragTargetId, setDragTargetId] = useState<string | null>(null)
+  const [dragOverUngroup, setDragOverUngroup] = useState(false)
   const ghostX = useSharedValue(0)
   const ghostY = useSharedValue(0)
   const cardLayouts = useRef<Record<string, { y: number; height: number }>>({})
+  const ungroupZoneLayout = useRef<{ y: number; height: number } | null>(null)
+  const ungroupZoneRef = useRef<View>(null)
   const ghostContainerRef = useRef<View>(null)
   const ghostContainerOffset = useRef({ x: 0, y: 0 })
   const draggingIdRef = useRef<string | null>(null)
+
+  const draggingGroupedApp = dragState
+    ? (apps.find((a) => a.id === dragState.appId)?.groupId != null)
+    : false
 
   const registerLayout = useCallback((appId: string, layout: { y: number; height: number }) => {
     cardLayouts.current[appId] = layout
@@ -816,18 +823,25 @@ export function AppsScreen() {
         }
       }
       setDragTargetId(found)
+
+      const zone = ungroupZoneLayout.current
+      const overZone = zone != null && screenY >= zone.y && screenY <= zone.y + zone.height
+      setDragOverUngroup(overZone)
     },
     [ghostX, ghostY, spacing.md, apps],
   )
 
   const onDragEnd = useCallback(() => {
-    if (dragState && dragTargetId) {
+    if (dragState && dragOverUngroup) {
+      ungroupApp(dragState.appId)
+    } else if (dragState && dragTargetId) {
       groupApps(dragState.appId, dragTargetId)
     }
     draggingIdRef.current = null
     setDragState(null)
     setDragTargetId(null)
-  }, [dragState, dragTargetId, groupApps])
+    setDragOverUngroup(false)
+  }, [dragState, dragTargetId, dragOverUngroup, groupApps, ungroupApp])
 
   const renderItems = useMemo((): RenderItem[] => {
     const seenGroups = new Set<string>()
@@ -952,6 +966,29 @@ export function AppsScreen() {
               />
             )
           })}
+
+          {/* Ungroup drop zone */}
+          {draggingGroupedApp && (
+            <View
+              ref={ungroupZoneRef}
+              onLayout={() => {
+                ungroupZoneRef.current?.measureInWindow((_x, y, _w, h) => {
+                  ungroupZoneLayout.current = { y, height: h }
+                })
+              }}
+              style={[
+                $ungroupZone,
+                {
+                  borderColor: dragOverUngroup ? colors.tint : colors.accentBorder,
+                  backgroundColor: dragOverUngroup ? colors.accentBg : "transparent",
+                },
+              ]}
+            >
+              <Text style={[$ungroupZoneText, { color: dragOverUngroup ? colors.tint : colors.tintInactive }]}>
+                Drop here to remove from group
+              </Text>
+            </View>
+          )}
 
           {/* Bottom CTA */}
           <TouchableOpacity
@@ -1078,6 +1115,20 @@ const $chartLabel: TextStyle = {
 const $listContent: ViewStyle = {
   gap: 10,
   paddingTop: 4,
+}
+
+const $ungroupZone: ViewStyle = {
+  borderWidth: 1.5,
+  borderStyle: "dashed",
+  borderRadius: 14,
+  paddingVertical: 18,
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const $ungroupZoneText: TextStyle = {
+  fontSize: 13,
+  fontWeight: "600",
 }
 
 const $card: ViewStyle = {
