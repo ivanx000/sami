@@ -359,6 +359,7 @@ function DraggableAppCard({
   const liftStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     zIndex: isDraggingThis ? 100 : 1,
+    opacity: isDraggingThis ? 0.35 : 1,
   }))
 
   return (
@@ -408,12 +409,14 @@ function GroupContainer({
   iconUrlByName,
   onPressApp,
   draggingAppId,
-  dragTargetId,
   anyDragging,
+  dragPreviewApp,
+  dragPreviewInsertIndex,
   onDragStart,
   onDragMove,
   onDragEnd,
   registerLayout,
+  registerGroupLayout,
   colors,
 }: {
   groupId: string
@@ -422,14 +425,17 @@ function GroupContainer({
   iconUrlByName: Record<string, string>
   onPressApp: (appId: string) => void
   draggingAppId: string | null
-  dragTargetId: string | null
   anyDragging: boolean
+  dragPreviewApp?: BlockedApp
+  dragPreviewInsertIndex?: number
   onDragStart: (appId: string, screenX: number, screenY: number, w: number, h: number) => void
   onDragMove: (screenX: number, screenY: number) => void
   onDragEnd: () => void
   registerLayout: (appId: string, layout: { y: number; height: number }) => void
+  registerGroupLayout: (groupId: string, layout: { y: number; height: number }) => void
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
+  const containerRef = useRef<View>(null)
   const now = useNow()
   const allDeselected = groupApps.every((app) => app.overrideUnblocked)
   const isBlocking = !allDeselected && isInSchedule(anchorApp.timeFrames, now)
@@ -446,8 +452,73 @@ function GroupContainer({
       ? `${formatTime(anchorApp.timeFrames[0].startTime)}–${formatTime(anchorApp.timeFrames[0].endTime)}`
       : null
 
+  const previewIndex = dragPreviewApp != null ? (dragPreviewInsertIndex ?? groupApps.length) : -1
+  const displayCount = groupApps.length + (dragPreviewApp ? 1 : 0)
+
+  const rows: React.ReactNode[] = []
+  let appIdx = 0
+  for (let i = 0; i < displayCount; i++) {
+    const isPreviewSlot = dragPreviewApp != null && i === previewIndex
+    const showDivider = i > 0
+
+    if (isPreviewSlot) {
+      rows.push(
+        <View key="__preview__" style={{ backgroundColor: colors.card }}>
+          {showDivider && <View style={[$groupDivider, { backgroundColor: colors.separator }]} />}
+          <View style={{ opacity: 0.5 }}>
+            <View
+              style={{
+                borderRadius: 14,
+                borderWidth: 1.5,
+                borderStyle: "dashed",
+                borderColor: colors.tint,
+                overflow: "hidden",
+              }}
+            >
+              <AppCardContent
+                app={dragPreviewApp}
+                iconUrl={iconUrlByName[dragPreviewApp.name]}
+                showSchedule={false}
+                colors={colors}
+              />
+            </View>
+          </View>
+        </View>,
+      )
+    } else {
+      const app = groupApps[appIdx++]
+      rows.push(
+        <View key={app.id} style={{ backgroundColor: colors.card }}>
+          {showDivider && <View style={[$groupDivider, { backgroundColor: colors.separator }]} />}
+          <DraggableAppCard
+            app={app}
+            iconUrl={iconUrlByName[app.name]}
+            onPress={() => onPressApp(app.id)}
+            isDraggingThis={draggingAppId === app.id}
+            isDropTarget={false}
+            anyDragging={anyDragging}
+            isGrouped={true}
+            onDragStart={onDragStart}
+            onDragMove={onDragMove}
+            onDragEnd={onDragEnd}
+            registerLayout={registerLayout}
+            colors={colors}
+          />
+        </View>,
+      )
+    }
+  }
+
   return (
-    <View style={$groupOuter}>
+    <View
+      ref={containerRef}
+      style={$groupOuter}
+      onLayout={() => {
+        containerRef.current?.measureInWindow((_x, y, _w, h) => {
+          registerGroupLayout(groupId, { y, height: h })
+        })
+      }}
+    >
       <View
         style={[
           $groupContainer,
@@ -466,34 +537,11 @@ function GroupContainer({
             )}
           </View>
           <Text style={[$groupCount, { color: colors.tintInactive }]}>
-            {groupApps.length} app{groupApps.length !== 1 ? "s" : ""}
+            {displayCount} app{displayCount !== 1 ? "s" : ""}
           </Text>
         </View>
 
-        {/* App rows */}
-        {groupApps.map((app, idx) => (
-          <View key={app.id} style={{ backgroundColor: colors.card }}>
-            {idx > 0 && (
-              <View
-                style={[$groupDivider, { backgroundColor: colors.separator }]}
-              />
-            )}
-            <DraggableAppCard
-              app={app}
-              iconUrl={iconUrlByName[app.name]}
-              onPress={() => onPressApp(app.id)}
-              isDraggingThis={draggingAppId === app.id}
-              isDropTarget={dragTargetId === app.id}
-              anyDragging={anyDragging}
-              isGrouped={true}
-              onDragStart={onDragStart}
-              onDragMove={onDragMove}
-              onDragEnd={onDragEnd}
-              registerLayout={registerLayout}
-              colors={colors}
-            />
-          </View>
-        ))}
+        {rows}
       </View>
     </View>
   )
@@ -768,10 +816,12 @@ export function AppsScreen() {
   // Drag state
   const [dragState, setDragState] = useState<DragState | null>(null)
   const [dragTargetId, setDragTargetId] = useState<string | null>(null)
+  const [dragTargetGroup, setDragTargetGroup] = useState<{ groupId: string; insertIndex: number } | null>(null)
   const [dragOverUngroup, setDragOverUngroup] = useState(false)
   const ghostX = useSharedValue(0)
   const ghostY = useSharedValue(0)
   const cardLayouts = useRef<Record<string, { y: number; height: number }>>({})
+  const groupLayouts = useRef<Record<string, { y: number; height: number }>>({})
   const ungroupZoneLayout = useRef<{ y: number; height: number } | null>(null)
   const ungroupZoneRef = useRef<View>(null)
   const ghostContainerRef = useRef<View>(null)
@@ -781,6 +831,10 @@ export function AppsScreen() {
   const draggingGroupedApp = dragState
     ? (apps.find((a) => a.id === dragState.appId)?.groupId != null)
     : false
+
+  const registerGroupLayout = useCallback((groupId: string, layout: { y: number; height: number }) => {
+    groupLayouts.current[groupId] = layout
+  }, [])
 
   const registerLayout = useCallback((appId: string, layout: { y: number; height: number }) => {
     cardLayouts.current[appId] = layout
@@ -808,18 +862,41 @@ export function AppsScreen() {
       const draggingId = draggingIdRef.current
       if (!draggingId) return
 
-      let found: string | null = null
-      for (const [id, layout] of Object.entries(cardLayouts.current)) {
-        if (id === draggingId) continue
-        const targetApp = apps.find((a) => a.id === id)
-        if (targetApp) {
-          const anchorId = targetApp.groupId ?? targetApp.id
-          const anchor = apps.find((a) => a.id === anchorId) ?? targetApp
-          if (!anchor.blockedForever && anchor.timeFrames.length === 0) continue
-        }
+      const draggingApp = apps.find((a) => a.id === draggingId)
+      const draggingGroupId = draggingApp?.groupId
+
+      // Check if hovering over an existing group (skip own group)
+      let foundGroup: { groupId: string; insertIndex: number } | null = null
+      for (const [groupId, layout] of Object.entries(groupLayouts.current)) {
+        if (groupId === draggingGroupId) continue
         if (screenY >= layout.y && screenY <= layout.y + layout.height) {
-          found = id
+          const members = apps.filter((a) => a.groupId === groupId)
+          const sorted = [...members].sort(
+            (a, b) => (cardLayouts.current[a.id]?.y ?? 0) - (cardLayouts.current[b.id]?.y ?? 0),
+          )
+          let insertIdx = 0
+          for (let i = 0; i < sorted.length; i++) {
+            const ml = cardLayouts.current[sorted[i].id]
+            if (ml && screenY > ml.y + ml.height / 2) insertIdx = i + 1
+          }
+          foundGroup = { groupId, insertIndex: insertIdx }
           break
+        }
+      }
+      setDragTargetGroup(foundGroup)
+
+      // Only check standalone targets when not over a group
+      let found: string | null = null
+      if (!foundGroup) {
+        for (const [id, layout] of Object.entries(cardLayouts.current)) {
+          if (id === draggingId) continue
+          const targetApp = apps.find((a) => a.id === id)
+          if (targetApp?.groupId) continue
+          if (targetApp && !targetApp.blockedForever && targetApp.timeFrames.length === 0) continue
+          if (screenY >= layout.y && screenY <= layout.y + layout.height) {
+            found = id
+            break
+          }
         }
       }
       setDragTargetId(found)
@@ -834,14 +911,22 @@ export function AppsScreen() {
   const onDragEnd = useCallback(() => {
     if (dragState && dragOverUngroup) {
       ungroupApp(dragState.appId)
+    } else if (dragState && dragTargetGroup) {
+      const members = apps.filter((a) => a.groupId === dragTargetGroup.groupId)
+      const sorted = [...members].sort(
+        (a, b) => (cardLayouts.current[a.id]?.y ?? 0) - (cardLayouts.current[b.id]?.y ?? 0),
+      )
+      const insertBeforeId = sorted[dragTargetGroup.insertIndex]?.id
+      groupApps(dragState.appId, dragTargetGroup.groupId, insertBeforeId)
     } else if (dragState && dragTargetId) {
       groupApps(dragState.appId, dragTargetId)
     }
     draggingIdRef.current = null
     setDragState(null)
     setDragTargetId(null)
+    setDragTargetGroup(null)
     setDragOverUngroup(false)
-  }, [dragState, dragTargetId, dragOverUngroup, groupApps, ungroupApp])
+  }, [dragState, dragTargetId, dragTargetGroup, dragOverUngroup, apps, groupApps, ungroupApp])
 
   const renderItems = useMemo((): RenderItem[] => {
     const seenGroups = new Set<string>()
@@ -956,12 +1041,20 @@ export function AppsScreen() {
                 iconUrlByName={iconUrlByName}
                 onPressApp={(appId) => navigation.navigate("AppDetail", { appId })}
                 draggingAppId={dragState?.appId ?? null}
-                dragTargetId={dragTargetId}
                 anyDragging={!!dragState}
+                dragPreviewApp={
+                  dragTargetGroup?.groupId === item.groupId && dragState
+                    ? apps.find((a) => a.id === dragState.appId)
+                    : undefined
+                }
+                dragPreviewInsertIndex={
+                  dragTargetGroup?.groupId === item.groupId ? dragTargetGroup.insertIndex : undefined
+                }
                 onDragStart={onDragStart}
                 onDragMove={onDragMove}
                 onDragEnd={onDragEnd}
                 registerLayout={registerLayout}
+                registerGroupLayout={registerGroupLayout}
                 colors={colors}
               />
             )

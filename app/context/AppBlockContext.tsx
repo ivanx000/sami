@@ -12,7 +12,7 @@ type AppBlockContextType = {
   getApp: (id: string) => BlockedApp | undefined
   addTimeFrame: (appId: string, tf: Omit<TimeFrame, "id">) => void
   removeTimeFrame: (appId: string, tfId: string) => void
-  groupApps: (draggedId: string, targetId: string) => void
+  groupApps: (draggedId: string, targetId: string, insertBeforeId?: string) => void
   ungroupApp: (appId: string) => void
   setAppUnblocked: (appId: string, unblocked: boolean) => void
 }
@@ -213,20 +213,31 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
   )
 
   const groupApps = useCallback(
-    (draggedId: string, targetId: string) => {
+    (draggedId: string, targetId: string, insertBeforeId?: string) => {
       const target = apps.find((a) => a.id === targetId)
       if (!target) return
       const groupId = target.groupId ?? target.id
       const anchor = apps.find((a) => a.id === groupId) ?? target
       if (!anchor.blockedForever && anchor.timeFrames.length === 0) return
-      persist(
-        apps.map((a) => {
-          if (a.id === draggedId)
-            return { ...a, groupId, timeFrames: anchor.timeFrames, blockedForever: anchor.blockedForever }
-          if (a.id === targetId && !a.groupId) return { ...a, groupId }
-          return a
-        }),
-      )
+
+      let next = apps.map((a) => {
+        if (a.id === draggedId)
+          return { ...a, groupId, timeFrames: anchor.timeFrames, blockedForever: anchor.blockedForever }
+        if (a.id === targetId && !a.groupId) return { ...a, groupId: a.id }
+        return a
+      })
+
+      if (insertBeforeId) {
+        const draggedApp = next.find((a) => a.id === draggedId)
+        if (draggedApp) {
+          next = next.filter((a) => a.id !== draggedId)
+          const insertIdx = next.findIndex((a) => a.id === insertBeforeId)
+          if (insertIdx >= 0) next.splice(insertIdx, 0, draggedApp)
+          else next.push(draggedApp)
+        }
+      }
+
+      persist(next)
     },
     [apps, persist],
   )
