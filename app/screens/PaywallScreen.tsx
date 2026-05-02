@@ -9,7 +9,6 @@ import {
   TextStyle,
 } from "react-native"
 import type { PurchasesPackage } from "react-native-purchases"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -25,10 +24,17 @@ const FEATURES = [
   "Weekly insights & streaks",
 ]
 
+function getPeriodSuffix(pkg: PurchasesPackage): string {
+  const type = pkg.packageType as string
+  if (type === "ANNUAL") return "/ yr"
+  if (type === "MONTHLY") return "/ mo"
+  if (type === "WEEKLY") return "/ wk"
+  return ""
+}
+
 export function PaywallScreen() {
   const { theme: { colors, spacing } } = useAppTheme()
-  const insets = useSafeAreaInsets()
-  const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases()
+const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases()
   const [purchasing, setPurchasing] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -65,12 +71,11 @@ export function PaywallScreen() {
   }
 
   return (
-    <Screen preset="scroll" safeAreaEdges={["bottom"]} systemBarStyle="dark">
-      <View style={[$root, { paddingHorizontal: spacing.md, paddingTop: insets.top + 16 }]}>
+    <Screen preset="scroll" safeAreaEdges={["top", "bottom"]} systemBarStyle="dark">
+      <View style={[$root, { paddingHorizontal: spacing.md, paddingTop: spacing.xxl }]}>
         {/* Hero */}
         <View style={$hero}>
-          <Text style={$heroEmoji}>🎯</Text>
-          <Text style={[$heroTitle, { color: colors.text }]}>Sami Premium</Text>
+          <Text style={[$heroTitle, { color: colors.text }]}>sami</Text>
           <Text style={[$heroSub, { color: colors.textDim }]}>
             Try free for 7 days, then continue building your focus habits
           </Text>
@@ -91,54 +96,50 @@ export function PaywallScreen() {
           <View style={$packages}>
             {packages.map((pkg: PurchasesPackage, i: number) => {
               const isSelected = i === selectedIndex
+              const isAnnual = (pkg.packageType as string) === "ANNUAL"
+              const suffix = getPeriodSuffix(pkg)
               return (
                 <TouchableOpacity
                   key={pkg.identifier}
                   style={[
                     $packageRow,
                     {
-                      backgroundColor: isSelected ? colors.tint : colors.card,
+                      backgroundColor: isSelected ? colors.tint + "18" : colors.card,
                       borderColor: isSelected ? colors.tint : colors.border,
+                      borderWidth: isSelected ? 1.5 : 1,
                     },
                   ]}
                   onPress={() => setSelectedIndex(i)}
                   activeOpacity={0.8}
                 >
                   <View style={$packageLeft}>
-                    <Text
-                      style={[
-                        $packageTitle,
-                        { color: isSelected ? colors.background : colors.text },
-                      ]}
-                    >
-                      {pkg.product.title || pkg.packageType}
-                    </Text>
+                    <View style={$packageTitleRow}>
+                      <Text style={[$packageTitle, { color: colors.text }]}>
+                        {pkg.product.title || pkg.packageType}
+                      </Text>
+                      {isAnnual && (
+                        <View style={[$bestValueBadge, { backgroundColor: colors.tint + "25" }]}>
+                          <Text style={[$bestValueText, { color: colors.tint }]}>Best value</Text>
+                        </View>
+                      )}
+                    </View>
                     {pkg.product.introPrice && (
-                      <Text
-                        style={[
-                          $packageTrial,
-                          { color: isSelected ? colors.background : colors.textDim },
-                        ]}
-                      >
+                      <Text style={[$packageTrial, { color: colors.textDim }]}>
                         {pkg.product.introPrice.periodNumberOfUnits}{" "}
                         {pkg.product.introPrice.periodUnit.toLowerCase()} free
                       </Text>
                     )}
                   </View>
-                  <Text
-                    style={[
-                      $packagePrice,
-                      { color: isSelected ? colors.background : colors.text },
-                    ]}
-                  >
+                  <Text style={[$packagePrice, { color: colors.text }]}>
                     {pkg.product.priceString}
+                    {suffix ? ` ${suffix}` : ""}
                   </Text>
                 </TouchableOpacity>
               )
             })}
           </View>
         ) : (
-          <View style={[$packageRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[$packageRow, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
             <Text style={[$featureText, { color: colors.textDim }]}>
               No offerings available. Check back soon.
             </Text>
@@ -169,7 +170,7 @@ export function PaywallScreen() {
         <View style={$legal}>
           <Text style={[$legalText, { color: colors.textDim }]}>
             Subscription auto-renews unless cancelled at least 24 hours before the end of the
-            current period.{" "}
+            current period.
           </Text>
           <View style={$legalLinks}>
             <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
@@ -199,16 +200,12 @@ const $root: ViewStyle = {
 
 const $hero: ViewStyle = {
   alignItems: "center",
-  gap: 8,
-}
-
-const $heroEmoji: TextStyle = {
-  fontSize: 56,
-  textAlign: "center",
+  gap: 12,
 }
 
 const $heroTitle: TextStyle = {
   fontSize: 28,
+  lineHeight: 40,
   fontWeight: "700",
   textAlign: "center",
 }
@@ -248,7 +245,6 @@ const $packages: ViewStyle = {
 
 const $packageRow: ViewStyle = {
   borderRadius: 14,
-  borderWidth: 1.5,
   padding: 14,
   flexDirection: "row",
   alignItems: "center",
@@ -256,11 +252,29 @@ const $packageRow: ViewStyle = {
 }
 
 const $packageLeft: ViewStyle = {
-  gap: 2,
+  gap: 4,
+  flex: 1,
+}
+
+const $packageTitleRow: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
 }
 
 const $packageTitle: TextStyle = {
   fontSize: 16,
+  fontWeight: "600",
+}
+
+const $bestValueBadge: ViewStyle = {
+  borderRadius: 999,
+  paddingHorizontal: 8,
+  paddingVertical: 2,
+}
+
+const $bestValueText: TextStyle = {
+  fontSize: 12,
   fontWeight: "600",
 }
 
@@ -269,12 +283,12 @@ const $packageTrial: TextStyle = {
 }
 
 const $packagePrice: TextStyle = {
-  fontSize: 16,
+  fontSize: 15,
   fontWeight: "700",
 }
 
 const $cta: ViewStyle = {
-  borderRadius: 16,
+  borderRadius: 999,
   paddingVertical: 16,
   alignItems: "center",
 }

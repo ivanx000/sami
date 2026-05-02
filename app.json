@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "orientation": "portrait",
   "userInterfaceStyle": "automatic",
-  "icon": "./assets/images/app-icon-all.png",
+  "icon": "./assets/icon.png",
   "updates": {
     "fallbackToCacheTimeout": 0
   },
@@ -15,17 +15,17 @@
     "**/*"
   ],
   "android": {
-    "icon": "./assets/images/app-icon-android-legacy.png",
+    "icon": "./assets/icon.png",
     "package": "com.sami",
     "adaptiveIcon": {
-      "foregroundImage": "./assets/images/app-icon-android-adaptive-foreground.png",
+      "foregroundImage": "./assets/icon.png",
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"
     },
     "allowBackup": false,
     "edgeToEdgeEnabled": true
   },
   "ios": {
-    "icon": "./assets/images/app-icon-ios.png",
+    "icon": "./assets/icon.png",
     "supportsTablet": true,
     "bundleIdentifier": "com.sami",
     "infoPlist": {
@@ -45,7 +45,7 @@
     }
   },
   "web": {
-    "favicon": "./assets/images/app-icon-web-favicon.png",
+    "favicon": "./assets/icon.png",
     "bundler": "metro"
   },
   "plugins": [

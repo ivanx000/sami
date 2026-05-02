@@ -1,4 +1,5 @@
 import { Alert, Linking, StyleSheet, TouchableOpacity, View, ViewStyle, TextStyle } from "react-native"
+
 import i18n from "i18next"
 import { ChevronRightIcon } from "react-native-heroicons/outline"
 
@@ -22,7 +23,6 @@ const LANGUAGES = [
 export function SettingsScreen({ navigation }: MainStackScreenProps<"Settings">) {
   const { theme: { colors, spacing }, themeContext, setThemeContextOverride } = useAppTheme()
   const { isPremium, restorePurchases, customerInfo } = usePurchases()
-
   const currentLang = LANGUAGES.find((l) => i18n.language.startsWith(l.code)) ?? LANGUAGES[0]
 
   const handleThemeToggle = () => {
@@ -62,7 +62,7 @@ export function SettingsScreen({ navigation }: MainStackScreenProps<"Settings">)
 
   return (
     <Screen preset="scroll" safeAreaEdges={["top", "bottom"]} systemBarStyle="dark">
-      <View style={[$root, { paddingHorizontal: spacing.md }]}>
+      <View style={[$root, { paddingHorizontal: spacing.md, paddingTop: spacing.sm }]}>
         {/* Header */}
         <View style={$headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={$backBtn} activeOpacity={0.7}>
@@ -161,6 +161,11 @@ export function SettingsScreen({ navigation }: MainStackScreenProps<"Settings">)
               chevron
               colors={colors}
             />
+            <SettingsRow
+              label="App version"
+              value="1.0.0"
+              colors={colors}
+            />
           </View>
         </View>
       </View>
@@ -207,12 +212,11 @@ function SettingsRow({
 
 const $root: ViewStyle = {
   gap: 24,
-  paddingTop: 16,
   paddingBottom: 40,
 }
 
 const $headerRow: ViewStyle = {
-  gap: 4,
+  gap: 8,
 }
 
 const $backBtn: ViewStyle = {
@@ -226,6 +230,7 @@ const $backText: TextStyle = {
 const $heading: TextStyle = {
   fontSize: 28,
   fontWeight: "700",
+  lineHeight: 40,
 }
 
 const $section: ViewStyle = {

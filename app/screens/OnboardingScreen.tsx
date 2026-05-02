@@ -1,7 +1,6 @@
-import { useRef, useState } from "react"
+import { useState } from "react"
 import {
   Dimensions,
-  Platform,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -11,10 +10,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-  interpolate,
-  Extrapolation,
 } from "react-native-reanimated"
 import * as Notifications from "expo-notifications"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { ViewfinderCircleIcon, LockClosedIcon, ChartBarIcon } from "react-native-heroicons/outline"
+import type { ComponentType } from "react"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -23,19 +23,21 @@ import { useAppTheme } from "@/theme/context"
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
-const STEPS = [
+type IconComponent = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
+
+const STEPS: { Icon: IconComponent; title: string; body: string }[] = [
   {
-    emoji: "🎯",
+    Icon: ViewfinderCircleIcon,
     title: "Reclaim your focus",
     body: "Sami helps you build deep focus habits by blocking distracting apps on your schedule — automatically.",
   },
   {
-    emoji: "🔒",
+    Icon: LockClosedIcon,
     title: "Block what pulls you away",
     body: "Choose which apps to block and when. Set time-based schedules, group them by habit, and stay in control.",
   },
   {
-    emoji: "📊",
+    Icon: ChartBarIcon,
     title: "Watch your focus grow",
     body: "Track focus sessions, log reflections, and see your weekly progress. Small sessions compound into big results.",
   },
@@ -44,6 +46,7 @@ const STEPS = [
 export function OnboardingScreen() {
   const { setOnboardingComplete } = useAppState()
   const { theme: { colors, spacing } } = useAppTheme()
+  const insets = useSafeAreaInsets()
   const [step, setStep] = useState(0)
   const [requestingPermission, setRequestingPermission] = useState(false)
   const translateX = useSharedValue(0)
@@ -58,7 +61,6 @@ export function OnboardingScreen() {
       goToStep(step + 1)
       return
     }
-    // Last step: request notifications then complete
     await requestNotifications()
     setOnboardingComplete()
   }
@@ -85,14 +87,14 @@ export function OnboardingScreen() {
   const isLastStep = step === STEPS.length - 1
 
   return (
-    <Screen preset="fixed" safeAreaEdges={["top", "bottom"]} systemBarStyle="dark" contentContainerStyle={$screenContent}>
-      <View style={$root}>
+    <Screen preset="fixed" safeAreaEdges={["bottom"]} systemBarStyle="dark" contentContainerStyle={$screenContent}>
+      <View style={[$root, { paddingTop: Math.max(insets.top, 60) }]}>
         {/* Slides */}
         <View style={$slideViewport}>
           <Animated.View style={[$slideTrack, animatedSlider]}>
             {STEPS.map((s, i) => (
               <View key={i} style={[$slide, { width: SCREEN_WIDTH }]}>
-                <Text style={$emoji}>{s.emoji}</Text>
+                <s.Icon size={64} color={colors.tint} strokeWidth={1.5} />
                 <Text style={[$title, { color: colors.text }]}>{s.title}</Text>
                 <Text style={[$body, { color: colors.textDim }]}>{s.body}</Text>
               </View>
@@ -110,8 +112,7 @@ export function OnboardingScreen() {
                 style={[
                   $dot,
                   {
-                    backgroundColor:
-                      i === step ? colors.tint : colors.border,
+                    backgroundColor: i === step ? colors.tint : colors.border,
                     width: i === step ? 20 : 6,
                   },
                 ]}
@@ -130,16 +131,13 @@ export function OnboardingScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Skip notifications on last step */}
-          {isLastStep && (
-            <TouchableOpacity
-              style={$skipBtn}
-              onPress={setOnboardingComplete}
-              activeOpacity={0.7}
-            >
-              <Text style={[$skipText, { color: colors.textDim }]}>Maybe later</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[$skipBtn, { opacity: isLastStep ? 1 : 0 }]}
+            onPress={isLastStep ? setOnboardingComplete : undefined}
+            activeOpacity={0.7}
+          >
+            <Text style={[$skipText, { color: colors.textDim }]}>Maybe later</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Screen>
@@ -176,11 +174,6 @@ const $slide: ViewStyle = {
   gap: 20,
 }
 
-const $emoji: TextStyle = {
-  fontSize: 72,
-  textAlign: "center",
-}
-
 const $title: TextStyle = {
   fontSize: 28,
   fontWeight: "700",
@@ -211,7 +204,7 @@ const $dot: ViewStyle = {
 }
 
 const $cta: ViewStyle = {
-  borderRadius: 16,
+  borderRadius: 999,
   paddingVertical: 16,
   alignItems: "center",
 }
