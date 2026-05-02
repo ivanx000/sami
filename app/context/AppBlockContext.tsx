@@ -301,7 +301,7 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
       if (wasAnchor) {
         const members = apps.filter((a) => a.id !== appId && a.groupId === app.groupId)
         if (members.length === 0) {
-          persist(apps.map((a) => a.id === appId ? { ...a, groupId: undefined } : a))
+          persist(apps.map((a) => a.id === appId ? { ...a, groupId: undefined, timeFrames: [], blockedForever: false } : a))
           return
         }
         const newAnchorId = members[0].id
