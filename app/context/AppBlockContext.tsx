@@ -2,8 +2,9 @@ import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffec
 import { useMMKVString } from "react-native-mmkv"
 
 import { GOAL_ACCENT_COLORS } from "@/theme/colors"
+import { useNow } from "@/hooks/useNow"
 import type { BlockedApp, TimeFrame } from "@/models/types"
-import { isInSchedule } from "@/utils/scheduleUtils"
+import { flushBlockingTime, isInSchedule } from "@/utils/scheduleUtils"
 
 type StreakData = { count: number; lastDate: string }
 
@@ -56,6 +57,48 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
     const today = new Date().toISOString().slice(0, 10)
     setStreakRaw(JSON.stringify({ count: 0, lastDate: today }))
   }, [setStreakRaw])
+
+  // Keep a always-fresh ref to apps so the schedule-monitoring effect never has a stale closure
+  const appsRef = useRef(apps)
+  useEffect(() => { appsRef.current = apps }, [apps])
+
+  // Detect schedule transitions (schedule starts/ends) and flush/start sessions accordingly
+  const prevEffectiveRef = useRef<Map<string, boolean>>(new Map())
+  const now = useNow(60_000)
+  useEffect(() => {
+    const nowDate = new Date()
+    const current = appsRef.current
+    let changed = false
+
+    const next = current.map((app) => {
+      const effective = !app.overrideUnblocked && (app.blockedForever || isInSchedule(app.timeFrames, nowDate))
+      const prev = prevEffectiveRef.current.get(app.id)
+      prevEffectiveRef.current.set(app.id, effective)
+
+      if (prev === undefined) {
+        // First run — start a session if currently blocked but none recorded
+        if (effective && !app.blockingStartedAt) {
+          changed = true
+          return { ...app, blockingStartedAt: nowDate.toISOString() }
+        }
+        return app
+      }
+
+      if (!prev && effective && !app.blockingStartedAt) {
+        changed = true
+        return { ...app, blockingStartedAt: nowDate.toISOString() }
+      }
+
+      if (prev && !effective && app.blockingStartedAt) {
+        changed = true
+        return flushBlockingTime(app, nowDate)
+      }
+
+      return app
+    })
+
+    if (changed) persist(next)
+  }, [now, persist])
 
   // One-time migration: sync timeFrames/groupId across groups with stale data
   useEffect(() => {
@@ -140,13 +183,33 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const updateApp = useCallback(
     (id: string, updates: Partial<BlockedApp>) => {
+      const now = new Date()
       const app = apps.find((a) => a.id === id)
       const groupId = app?.groupId
       persist(
         apps.map((a) => {
-          if (groupId && (a.groupId === groupId || a.id === groupId)) return { ...a, ...updates }
-          if (!groupId && a.id === id) return { ...a, ...updates }
-          return a
+          const matches = groupId
+            ? a.groupId === groupId || a.id === groupId
+            : a.id === id
+          if (!matches) return a
+
+          const updated = { ...a, ...updates }
+
+          if ("blockedForever" in updates) {
+            const wasEffective = !a.overrideUnblocked && (a.blockedForever || isInSchedule(a.timeFrames, now))
+            const isEffective = !updated.overrideUnblocked && (updated.blockedForever || isInSchedule(updated.timeFrames, now))
+
+            if (!wasEffective && isEffective && !updated.blockingStartedAt) {
+              prevEffectiveRef.current.set(a.id, true)
+              return { ...updated, blockingStartedAt: now.toISOString() }
+            }
+            if (wasEffective && !isEffective && updated.blockingStartedAt) {
+              prevEffectiveRef.current.set(a.id, false)
+              return flushBlockingTime(updated, now)
+            }
+          }
+
+          return updated
         }),
       )
     },
@@ -329,11 +392,29 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const setAppUnblocked = useCallback(
     (appId: string, unblocked: boolean) => {
+      const now = new Date()
       if (unblocked) {
         const app = apps.find((a) => a.id === appId)
-        if (app && isInSchedule(app.timeFrames, new Date())) resetStreak()
+        if (app && isInSchedule(app.timeFrames, now)) resetStreak()
       }
-      persist(apps.map((a) => (a.id === appId ? { ...a, overrideUnblocked: unblocked } : a)))
+      persist(
+        apps.map((a) => {
+          if (a.id !== appId) return a
+          const updated = { ...a, overrideUnblocked: unblocked }
+          const wasEffective = !a.overrideUnblocked && (a.blockedForever || isInSchedule(a.timeFrames, now))
+          const isEffective = !updated.overrideUnblocked && (updated.blockedForever || isInSchedule(updated.timeFrames, now))
+
+          if (wasEffective && !isEffective && a.blockingStartedAt) {
+            prevEffectiveRef.current.set(a.id, false)
+            return flushBlockingTime(updated, now)
+          }
+          if (!wasEffective && isEffective && !updated.blockingStartedAt) {
+            prevEffectiveRef.current.set(a.id, true)
+            return { ...updated, blockingStartedAt: now.toISOString() }
+          }
+          return updated
+        }),
+      )
     },
     [apps, persist, resetStreak],
   )

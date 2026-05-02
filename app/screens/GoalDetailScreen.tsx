@@ -22,9 +22,9 @@ import { useAppBlock } from "@/context/AppBlockContext"
 import { CURATED_APPS } from "@/data/curatedApps"
 import { useAppIcons } from "@/hooks/useAppIcons"
 import { useNow } from "@/hooks/useNow"
-import type { TimeFrame } from "@/models/types"
+import type { BlockedApp, TimeFrame } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
-import { isInSchedule } from "@/utils/scheduleUtils"
+import { isInSchedule, localDateKey } from "@/utils/scheduleUtils"
 import type { MainStackScreenProps } from "@/navigators/navigationTypes"
 
 const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
@@ -75,43 +75,41 @@ function hasOverlap(
     })
 }
 
-// ---- Usage Chart ----
+// ---- Tracking helpers ----
 
-function scheduledHoursForDay(timeFrames: TimeFrame[], day: number): number {
-  let mins = 0
-  for (const tf of timeFrames) {
-    if (!tf.days.includes(day)) continue
-    const [sh = 0, sm = 0] = tf.startTime.split(":").map(Number)
-    const [eh = 0, em = 0] = tf.endTime.split(":").map(Number)
-    const start = sh * 60 + sm
-    const end = eh * 60 + em
-    mins += end > start ? end - start : 1440 - start + end
-  }
-  return mins / 60
+function actualBlockedMins(app: BlockedApp, dk: string, now: Date): number {
+  const base = app.blockedMinutesByDay?.[dk] ?? 0
+  if (!app.blockingStartedAt) return base
+
+  const sessionStart = new Date(app.blockingStartedAt)
+  const dayStart = new Date(`${dk}T00:00:00`)
+  const dayEnd = new Date(`${dk}T23:59:59.999`)
+  if (sessionStart > dayEnd) return base
+
+  const effectiveStart = sessionStart < dayStart ? dayStart : sessionStart
+  const effectiveEnd = now < dayEnd ? now : dayEnd
+  if (effectiveEnd <= effectiveStart) return base
+
+  return base + (effectiveEnd.getTime() - effectiveStart.getTime()) / 60000
 }
 
+// ---- Usage Chart ----
+
 function UsageChart({
-  timeFrames,
+  chartHours,
   colors,
 }: {
-  timeFrames: TimeFrame[]
+  chartHours: number[]
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
-  const blockedDays = new Set(timeFrames.flatMap((tf) => tf.days))
-  const scheduledHours = Array.from({ length: 7 }, (_, i) => scheduledHoursForDay(timeFrames, i))
-  const maxH = Math.max(...scheduledHours, 0.01)
+  const maxH = Math.max(...chartHours, 0.01)
   const dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
 
   return (
-    <View
-      style={[
-        $chartCard,
-        { backgroundColor: colors.card, borderColor: colors.border },
-      ]}
-    >
-      <Text style={[$sectionLabel, { color: colors.tintInactive }]}>Usage this week</Text>
+    <View style={[$chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[$sectionLabel, { color: colors.tintInactive }]}>Blocked this week</Text>
       <View style={$usageBars}>
-        {scheduledHours.map((h, i) => (
+        {chartHours.map((h, i) => (
           <View
             key={i}
             style={[
@@ -119,8 +117,8 @@ function UsageChart({
               {
                 flex: 1,
                 height: h > 0 ? Math.max((h / maxH) * 56, 4) : 3,
-                backgroundColor: blockedDays.has(i) ? colors.tint : colors.tintInactive,
-                opacity: blockedDays.has(i) ? 0.7 : 0.35,
+                backgroundColor: h > 0 ? colors.tint : colors.tintInactive,
+                opacity: h > 0 ? 0.7 : 0.35,
               },
             ]}
           />
@@ -130,27 +128,10 @@ function UsageChart({
         {dayLabels.map((d, i) => (
           <Text
             key={i}
-            style={[
-              $usageBarLabel,
-              { flex: 1, color: blockedDays.has(i) ? colors.tint : colors.tintInactive },
-            ]}
+            style={[$usageBarLabel, { flex: 1, color: chartHours[i]! > 0 ? colors.tint : colors.tintInactive }]}
           >
             {d}
           </Text>
-        ))}
-      </View>
-      {/* Legend */}
-      <View style={{ flexDirection: "row", gap: 14, marginTop: 10 }}>
-        {[
-          { color: colors.tint, label: "Blocked days" },
-          { color: colors.tintInactive, label: "Open days" },
-        ].map((x) => (
-          <View key={x.label} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-            <View
-              style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: x.color, opacity: 0.7 }}
-            />
-            <Text style={{ fontSize: 10, color: colors.tintInactive }}>{x.label}</Text>
-          </View>
         ))}
       </View>
     </View>
@@ -383,17 +364,24 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
   const scheduleActive = anchor ? isInSchedule(timeFrames, now) : false
   const effectivelyBlocked = !app?.overrideUnblocked && ((anchor?.blockedForever ?? false) || scheduleActive)
 
-  const todayBlockedHours = scheduledHoursForDay(timeFrames, now.getDay())
-  const weekBlockedHours = Array.from({ length: 7 }, (_, i) => scheduledHoursForDay(timeFrames, i)).reduce(
-    (a, b) => a + b,
-    0,
-  )
-  const fmtHours = (h: number) => (h === 0 ? "0h" : h < 1 ? `${Math.round(h * 60)}m` : `${h.toFixed(1)}h`)
-
   if (!app) {
     navigation.goBack()
     return null
   }
+
+  const weekStart = new Date(now)
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+  weekStart.setHours(0, 0, 0, 0)
+
+  const chartHours = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart)
+    d.setDate(weekStart.getDate() + i)
+    return actualBlockedMins(app, localDateKey(d), now) / 60
+  })
+
+  const todayBlockedHours = actualBlockedMins(app, localDateKey(now), now) / 60
+  const weekBlockedHours = chartHours.reduce((a, b) => a + b, 0)
+  const fmtHours = (h: number) => (h === 0 ? "0h" : h < 1 ? `${Math.round(h * 60)}m` : `${h.toFixed(1)}h`)
 
   const handleDelete = () => {
     Alert.alert("Remove app?", `Stop blocking ${app.name}?`, [
@@ -445,7 +433,7 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
         </View>
 
         {/* Usage chart */}
-        <UsageChart timeFrames={timeFrames} colors={colors} />
+        <UsageChart chartHours={chartHours} colors={colors} />
 
         {/* Stats tiles */}
         <View style={$statsTiles}>

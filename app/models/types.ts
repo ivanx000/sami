@@ -17,6 +17,8 @@ export interface BlockedApp {
   timeFrames: TimeFrame[]
   createdAt: string
   groupId?: string
+  blockingStartedAt?: string
+  blockedMinutesByDay?: Record<string, number>
 }
 
 export interface Goal {
