@@ -18,14 +18,14 @@ const exitRoutes = Config.exitRoutes
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = () => {
-  const { hasCompletedOnboarding } = useAppState()
+  const { hasCompletedOnboarding, paywallDismissed } = useAppState()
   const { isPremium, isLoading } = usePurchases()
   const {
     theme: { colors },
   } = useAppTheme()
 
   const showOnboarding = !hasCompletedOnboarding
-  const showPaywall = hasCompletedOnboarding && !isPremium && !isLoading
+  const showPaywall = hasCompletedOnboarding && !isPremium && !paywallDismissed && !isLoading
 
   return (
     <Stack.Navigator

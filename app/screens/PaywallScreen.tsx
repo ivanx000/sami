@@ -9,9 +9,11 @@ import {
   TextStyle,
 } from "react-native"
 import type { PurchasesPackage } from "react-native-purchases"
+import { ChevronLeftIcon } from "react-native-heroicons/outline"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
+import { useAppState } from "@/context/AppStateContext"
 import { usePurchases } from "@/context/PurchasesContext"
 import { useAppTheme } from "@/theme/context"
 import { PRIVACY_POLICY_URL, TERMS_URL } from "@/config/appConstants"
@@ -34,7 +36,8 @@ function getPeriodSuffix(pkg: PurchasesPackage): string {
 
 export function PaywallScreen() {
   const { theme: { colors, spacing } } = useAppTheme()
-const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases()
+  const { dismissPaywall } = useAppState()
+  const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases()
   const [purchasing, setPurchasing] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -72,7 +75,13 @@ const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases
 
   return (
     <Screen preset="scroll" safeAreaEdges={["top", "bottom"]} systemBarStyle="dark">
-      <View style={[$root, { paddingHorizontal: spacing.md, paddingTop: spacing.xxl }]}>
+      <View style={[$root, { paddingHorizontal: spacing.md, paddingTop: spacing.md }]}>
+        {/* Back button */}
+        <TouchableOpacity style={$backBtn} onPress={dismissPaywall} activeOpacity={0.7} hitSlop={8}>
+          <ChevronLeftIcon size={18} color={colors.tint} strokeWidth={2} />
+          <Text style={[$backText, { color: colors.tint }]}>Back</Text>
+        </TouchableOpacity>
+
         {/* Hero */}
         <View style={$hero}>
           <Text style={[$heroTitle, { color: colors.text }]}>sami</Text>
@@ -185,6 +194,17 @@ const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases
       </View>
     </Screen>
   )
+}
+
+const $backBtn: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+}
+
+const $backText: TextStyle = {
+  fontSize: 16,
+  fontWeight: "500",
 }
 
 const $centered: ViewStyle = {

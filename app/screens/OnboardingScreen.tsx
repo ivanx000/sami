@@ -6,6 +6,7 @@ import {
   ViewStyle,
   TextStyle,
 } from "react-native"
+import { ChevronLeftIcon } from "react-native-heroicons/outline"
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -89,6 +90,19 @@ export function OnboardingScreen() {
   return (
     <Screen preset="fixed" safeAreaEdges={["bottom"]} systemBarStyle="dark" contentContainerStyle={$screenContent}>
       <View style={[$root, { paddingTop: Math.max(insets.top, 60) }]}>
+        {/* Back button */}
+        {step > 0 && (
+          <TouchableOpacity
+            style={[$backBtn, { top: insets.top + 8 }]}
+            onPress={() => goToStep(step - 1)}
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <ChevronLeftIcon size={18} color={colors.tint} strokeWidth={2} />
+            <Text style={[$backText, { color: colors.tint }]}>Back</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Slides */}
         <View style={$slideViewport}>
           <Animated.View style={[$slideTrack, animatedSlider]}>
@@ -142,6 +156,20 @@ export function OnboardingScreen() {
       </View>
     </Screen>
   )
+}
+
+const $backBtn: ViewStyle = {
+  position: "absolute",
+  left: 20,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+  zIndex: 10,
+}
+
+const $backText: TextStyle = {
+  fontSize: 16,
+  fontWeight: "500",
 }
 
 const $screenContent: ViewStyle = {
