@@ -13,8 +13,8 @@ import { ChevronLeftIcon } from "react-native-heroicons/outline"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
-import { useAppState } from "@/context/AppStateContext"
 import { usePurchases } from "@/context/PurchasesContext"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 import { PRIVACY_POLICY_URL, TERMS_URL } from "@/config/appConstants"
 
@@ -34,9 +34,8 @@ function getPeriodSuffix(pkg: PurchasesPackage): string {
   return ""
 }
 
-export function PaywallScreen() {
+export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
   const { theme: { colors, spacing } } = useAppTheme()
-  const { dismissPaywall } = useAppState()
   const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases()
   const [purchasing, setPurchasing] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -77,7 +76,16 @@ export function PaywallScreen() {
     <Screen preset="scroll" safeAreaEdges={["top", "bottom"]} systemBarStyle="dark">
       <View style={[$root, { paddingHorizontal: spacing.md, paddingTop: spacing.md }]}>
         {/* Back button */}
-        <TouchableOpacity style={$backBtn} onPress={dismissPaywall} activeOpacity={0.7} hitSlop={8}>
+        <TouchableOpacity
+          style={$backBtn}
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.reset({ index: 0, routes: [{ name: "Onboarding", params: { initialStep: 2 } }] })
+          }
+          activeOpacity={0.7}
+          hitSlop={8}
+        >
           <ChevronLeftIcon size={18} color={colors.tint} strokeWidth={2} />
           <Text style={[$backText, { color: colors.tint }]}>Back</Text>
         </TouchableOpacity>

@@ -20,6 +20,8 @@ import type { ComponentType } from "react"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { useAppState } from "@/context/AppStateContext"
+import { usePurchases } from "@/context/PurchasesContext"
+import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
@@ -44,11 +46,12 @@ const STEPS: { Icon: IconComponent; title: string; body: string }[] = [
   },
 ]
 
-export function OnboardingScreen() {
+export function OnboardingScreen({ navigation, route }: AppStackScreenProps<"Onboarding">) {
   const { setOnboardingComplete } = useAppState()
+  const { isPremium } = usePurchases()
   const { theme: { colors, spacing } } = useAppTheme()
   const insets = useSafeAreaInsets()
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(route.params?.initialStep ?? 0)
   const [requestingPermission, setRequestingPermission] = useState(false)
   const translateX = useSharedValue(0)
 
@@ -64,6 +67,11 @@ export function OnboardingScreen() {
     }
     await requestNotifications()
     setOnboardingComplete()
+    if (isPremium) {
+      navigation.reset({ index: 0, routes: [{ name: "Main" }] })
+    } else {
+      navigation.navigate("Paywall")
+    }
   }
 
   const requestNotifications = async () => {

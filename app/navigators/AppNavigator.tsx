@@ -18,14 +18,17 @@ const exitRoutes = Config.exitRoutes
 const Stack = createNativeStackNavigator<AppStackParamList>()
 
 const AppStack = () => {
-  const { hasCompletedOnboarding, paywallDismissed } = useAppState()
+  const { hasCompletedOnboarding } = useAppState()
   const { isPremium, isLoading } = usePurchases()
   const {
     theme: { colors },
   } = useAppTheme()
 
-  const showOnboarding = !hasCompletedOnboarding
-  const showPaywall = hasCompletedOnboarding && !isPremium && !paywallDismissed && !isLoading
+  const initialRouteName = !hasCompletedOnboarding
+    ? "Onboarding"
+    : !isPremium && !isLoading
+    ? "Paywall"
+    : "Main"
 
   return (
     <Stack.Navigator
@@ -34,15 +37,11 @@ const AppStack = () => {
         navigationBarColor: colors.background,
         contentStyle: { backgroundColor: colors.background },
       }}
-      initialRouteName={showOnboarding ? "Onboarding" : showPaywall ? "Paywall" : "Main"}
+      initialRouteName={initialRouteName}
     >
-      {showOnboarding ? (
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-      ) : showPaywall ? (
-        <Stack.Screen name="Paywall" component={PaywallScreen} />
-      ) : (
-        <Stack.Screen name="Main" component={MainNavigator} />
-      )}
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      <Stack.Screen name="Paywall" component={PaywallScreen} />
+      <Stack.Screen name="Main" component={MainNavigator} />
     </Stack.Navigator>
   )
 }

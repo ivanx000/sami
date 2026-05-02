@@ -16,7 +16,7 @@ export type MainStackParamList = {
 }
 
 export type AppStackParamList = {
-  Onboarding: undefined
+  Onboarding: { initialStep?: number } | undefined
   Paywall: undefined
   Main: NavigatorScreenParams<MainStackParamList>
 }
