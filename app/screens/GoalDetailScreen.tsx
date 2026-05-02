@@ -77,6 +77,19 @@ function hasOverlap(
 
 // ---- Usage Chart ----
 
+function scheduledHoursForDay(timeFrames: TimeFrame[], day: number): number {
+  let mins = 0
+  for (const tf of timeFrames) {
+    if (!tf.days.includes(day)) continue
+    const [sh = 0, sm = 0] = tf.startTime.split(":").map(Number)
+    const [eh = 0, em = 0] = tf.endTime.split(":").map(Number)
+    const start = sh * 60 + sm
+    const end = eh * 60 + em
+    mins += end > start ? end - start : 1440 - start + end
+  }
+  return mins / 60
+}
+
 function UsageChart({
   timeFrames,
   colors,
@@ -84,10 +97,9 @@ function UsageChart({
   timeFrames: TimeFrame[]
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
-  // Days Sun-Sat (0-6), check which are blocked
   const blockedDays = new Set(timeFrames.flatMap((tf) => tf.days))
-  const usageHours = [2.1, 0.4, 1.8, 0.0, 1.5, 3.2, 2.8]
-  const maxH = Math.max(...usageHours)
+  const scheduledHours = Array.from({ length: 7 }, (_, i) => scheduledHoursForDay(timeFrames, i))
+  const maxH = Math.max(...scheduledHours, 0.01)
   const dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
 
   return (
@@ -99,7 +111,7 @@ function UsageChart({
     >
       <Text style={[$sectionLabel, { color: colors.tintInactive }]}>Usage this week</Text>
       <View style={$usageBars}>
-        {usageHours.map((h, i) => (
+        {scheduledHours.map((h, i) => (
           <View
             key={i}
             style={[
@@ -371,6 +383,13 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
   const scheduleActive = anchor ? isInSchedule(timeFrames, now) : false
   const effectivelyBlocked = !app?.overrideUnblocked && ((anchor?.blockedForever ?? false) || scheduleActive)
 
+  const todayBlockedHours = scheduledHoursForDay(timeFrames, now.getDay())
+  const weekBlockedHours = Array.from({ length: 7 }, (_, i) => scheduledHoursForDay(timeFrames, i)).reduce(
+    (a, b) => a + b,
+    0,
+  )
+  const fmtHours = (h: number) => (h === 0 ? "0h" : h < 1 ? `${Math.round(h * 60)}m` : `${h.toFixed(1)}h`)
+
   if (!app) {
     navigation.goBack()
     return null
@@ -431,9 +450,8 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
         {/* Stats tiles */}
         <View style={$statsTiles}>
           {[
-            { val: "11.2h", label: "Saved this week" },
-            { val: "3.2h", label: "Used today" },
-            { val: "47", label: "Times blocked" },
+            { val: fmtHours(weekBlockedHours), label: "Blocked this week" },
+            { val: fmtHours(todayBlockedHours), label: "Blocked today" },
           ].map((s) => (
             <View
               key={s.label}
