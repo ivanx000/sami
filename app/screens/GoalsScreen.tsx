@@ -94,10 +94,11 @@ type RenderItem =
 // ---- Stats Hero ----
 
 function formatMinutes(mins: number): string {
-  if (mins < 60) return `${mins}m`
-  const h = Math.floor(mins / 60)
-  const m = mins % 60
-  return m === 0 ? `${h}h` : `${h}h ${m}m`
+  const m = parseFloat(mins.toFixed(2))
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  const rem = parseFloat((m % 60).toFixed(2))
+  return rem === 0 ? `${h}h` : `${h}h ${rem}m`
 }
 
 function StatsHero({

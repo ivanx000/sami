@@ -142,11 +142,9 @@ function UsageChart({
 
 function TimeFrameRow({
   tf,
-  accentColor,
   onDelete,
 }: {
   tf: TimeFrame
-  accentColor: string
   onDelete: () => void
 }) {
   const {
@@ -381,7 +379,11 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
 
   const todayBlockedHours = actualBlockedMins(app, localDateKey(now), now) / 60
   const weekBlockedHours = chartHours.reduce((a, b) => a + b, 0)
-  const fmtHours = (h: number) => (h === 0 ? "0h" : h < 1 ? `${Math.round(h * 60)}m` : `${h.toFixed(1)}h`)
+  const fmtHours = (h: number) => {
+    if (h === 0) return "0h"
+    if (h < 1) return `${parseFloat((h * 60).toFixed(2))}m`
+    return `${parseFloat(h.toFixed(2))}h`
+  }
 
   const handleDelete = () => {
     Alert.alert("Remove app?", `Stop blocking ${app.name}?`, [
@@ -494,7 +496,6 @@ export function AppDetailScreen({ route, navigation }: MainStackScreenProps<"App
                   {idx > 0 && <View style={[$divider, { backgroundColor: colors.separator }]} />}
                   <TimeFrameRow
                     tf={tf}
-                    accentColor={app.accentColor}
                     onDelete={() => removeTimeFrame(appId, tf.id)}
                   />
                 </View>
@@ -681,9 +682,6 @@ const $scheduleRowTitle: TextStyle = {
   fontWeight: "600",
 }
 
-const $scheduleRowSub: TextStyle = {
-  fontSize: 11,
-}
 
 const $divider: ViewStyle = {
   height: 1,
