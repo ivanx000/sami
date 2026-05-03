@@ -1,43 +1,18 @@
 import { Alert, Linking, StyleSheet, TouchableOpacity, View, ViewStyle, TextStyle } from "react-native"
-
-import i18n from "i18next"
+import * as Application from "expo-application"
 import { ChevronRightIcon } from "react-native-heroicons/outline"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { usePurchases } from "@/context/PurchasesContext"
 import { useAppTheme } from "@/theme/context"
-import { PRIVACY_POLICY_URL, TERMS_URL, SUPPORT_EMAIL } from "@/config/appConstants"
+import { SUPPORT_EMAIL } from "@/config/appConstants"
+import Config from "@/config"
 import type { MainStackScreenProps } from "@/navigators/navigationTypes"
 
-const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "es", label: "Español" },
-  { code: "fr", label: "Français" },
-  { code: "ar", label: "العربية" },
-  { code: "hi", label: "हिन्दी" },
-  { code: "ja", label: "日本語" },
-  { code: "ko", label: "한국어" },
-]
-
 export function SettingsScreen({ navigation }: MainStackScreenProps<"Settings">) {
-  const { theme: { colors, spacing }, themeContext, setThemeContextOverride } = useAppTheme()
+  const { theme: { colors, spacing } } = useAppTheme()
   const { isPremium, restorePurchases, customerInfo } = usePurchases()
-  const currentLang = LANGUAGES.find((l) => i18n.language.startsWith(l.code)) ?? LANGUAGES[0]
-
-  const handleThemeToggle = () => {
-    setThemeContextOverride(themeContext === "dark" ? "light" : "dark")
-  }
-
-  const handleLanguage = () => {
-    Alert.alert("Language", "Choose a language", [
-      ...LANGUAGES.map((lang) => ({
-        text: lang.label,
-        onPress: () => i18n.changeLanguage(lang.code),
-      })),
-      { text: "Cancel", style: "cancel" },
-    ])
-  }
 
   const handleRestore = async () => {
     const success = await restorePurchases()
@@ -52,13 +27,16 @@ export function SettingsScreen({ navigation }: MainStackScreenProps<"Settings">)
     Linking.openURL("https://apps.apple.com/account/subscriptions")
   }
 
-  const subscriptionLabel = () => {
+  const subscriptionStatus = () => {
     if (!customerInfo) return "Loading…"
-    const entitlement = customerInfo.entitlements.active["premium"]
+    const entitlement = customerInfo.entitlements.active[Config.revenueCatEntitlement]
     if (!entitlement) return "Free"
     const exp = entitlement.expirationDate
-    return exp ? `Active · renews ${new Date(exp).toLocaleDateString()}` : "Active"
+    return exp ? `Renews ${new Date(exp).toLocaleDateString()}` : "Active"
   }
+
+  const appVersion = Application.nativeApplicationVersion ?? "—"
+  const buildVersion = Application.nativeBuildVersion ?? "—"
 
   return (
     <Screen preset="scroll" safeAreaEdges={["top", "bottom"]} systemBarStyle="dark">
@@ -80,56 +58,36 @@ export function SettingsScreen({ navigation }: MainStackScreenProps<"Settings">)
               value={isPremium ? "Premium" : "Free"}
               colors={colors}
             />
-            {isPremium && (
+            {isPremium ? (
+              <>
+                <SettingsRow
+                  label="Status"
+                  value={subscriptionStatus()}
+                  colors={colors}
+                />
+                <SettingsRow
+                  label="Manage subscription"
+                  onPress={handleManageSubscription}
+                  chevron
+                  colors={colors}
+                  last
+                />
+              </>
+            ) : (
               <SettingsRow
-                label="Status"
-                value={subscriptionLabel()}
-                colors={colors}
-              />
-            )}
-            {isPremium && (
-              <SettingsRow
-                label="Manage subscription"
-                onPress={handleManageSubscription}
+                label="Restore purchases"
+                onPress={handleRestore}
                 chevron
                 colors={colors}
+                last
               />
             )}
-            <SettingsRow
-              label="Restore purchases"
-              onPress={handleRestore}
-              chevron
-              colors={colors}
-            />
           </View>
-        </View>
-
-        {/* Appearance */}
-        <View style={$section}>
-          <Text style={[$sectionLabel, { color: colors.textDim }]}>APPEARANCE</Text>
-          <View style={[$card, { backgroundColor: colors.card }]}>
-            <SettingsRow
-              label="Theme"
-              value={themeContext === "dark" ? "Dark" : "Light"}
-              onPress={handleThemeToggle}
-              chevron
-              colors={colors}
-            />
-          </View>
-        </View>
-
-        {/* Language */}
-        <View style={$section}>
-          <Text style={[$sectionLabel, { color: colors.textDim }]}>LANGUAGE</Text>
-          <View style={[$card, { backgroundColor: colors.card }]}>
-            <SettingsRow
-              label="App language"
-              value={currentLang.label}
-              onPress={handleLanguage}
-              chevron
-              colors={colors}
-            />
-          </View>
+          {isPremium && (
+            <TouchableOpacity onPress={handleRestore} activeOpacity={0.7} style={$restoreLink}>
+              <Text style={[$restoreLinkText, { color: colors.textDim }]}>Restore purchases</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Legal */}
@@ -138,15 +96,16 @@ export function SettingsScreen({ navigation }: MainStackScreenProps<"Settings">)
           <View style={[$card, { backgroundColor: colors.card }]}>
             <SettingsRow
               label="Privacy Policy"
-              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+              onPress={() => navigation.navigate("Legal", { type: "privacy" })}
               chevron
               colors={colors}
             />
             <SettingsRow
               label="Terms of Service"
-              onPress={() => Linking.openURL(TERMS_URL)}
+              onPress={() => navigation.navigate("Legal", { type: "terms" })}
               chevron
               colors={colors}
+              last
             />
           </View>
         </View>
@@ -162,9 +121,10 @@ export function SettingsScreen({ navigation }: MainStackScreenProps<"Settings">)
               colors={colors}
             />
             <SettingsRow
-              label="App version"
-              value="1.0.0"
+              label="Version"
+              value={`${appVersion} (${buildVersion})`}
               colors={colors}
+              last
             />
           </View>
         </View>
@@ -178,16 +138,18 @@ function SettingsRow({
   value,
   onPress,
   chevron,
+  last,
   colors,
 }: {
   label: string
   value?: string
   onPress?: () => void
   chevron?: boolean
+  last?: boolean
   colors: ReturnType<typeof useAppTheme>["theme"]["colors"]
 }) {
   const inner = (
-    <View style={[$row, { borderBottomColor: colors.border }]}>
+    <View style={[$row, { borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
       <Text style={[$rowLabel, { color: colors.text }]}>{label}</Text>
       <View style={$rowRight}>
         {value ? (
@@ -254,7 +216,6 @@ const $row: ViewStyle = {
   justifyContent: "space-between",
   paddingHorizontal: 16,
   paddingVertical: 14,
-  borderBottomWidth: StyleSheet.hairlineWidth,
 }
 
 const $rowLabel: TextStyle = {
@@ -271,3 +232,11 @@ const $rowValue: TextStyle = {
   fontSize: 14,
 }
 
+const $restoreLink: ViewStyle = {
+  alignSelf: "center",
+  paddingVertical: 4,
+}
+
+const $restoreLinkText: TextStyle = {
+  fontSize: 13,
+}

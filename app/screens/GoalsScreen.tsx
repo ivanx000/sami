@@ -51,6 +51,9 @@ import type { BlockedApp, TimeFrame } from "@/models/types"
 import { useAppTheme } from "@/theme/context"
 import { isInSchedule } from "@/utils/scheduleUtils"
 import type { MainStackParamList } from "@/navigators/navigationTypes"
+import { storage } from "@/utils/storage"
+
+const REVIEW_REQUESTED_KEY = "reviewRequested"
 
 type NavProp = NativeStackNavigationProp<MainStackParamList>
 
@@ -610,13 +613,22 @@ function AppPickerSheet({ visible, onClose }: { visible: boolean; onClose: () =>
     })
   }
 
-  const handleDone = () => {
+  const handleDone = async () => {
     const entries = [...selectedIds].flatMap((id) => {
       const app = installedApps.find((a) => a.id === id)
       return app ? [{ name: app.name, brandColor: app.brandColor }] : []
     })
+    const isFirstBlock = apps.length === 0 && entries.length > 0
     if (entries.length > 0) addApps(entries)
     handleClose()
+    if (isFirstBlock && !storage.getBoolean(REVIEW_REQUESTED_KEY)) {
+      storage.set(REVIEW_REQUESTED_KEY, true)
+      try {
+        const StoreReview = await import("expo-store-review")
+        const isAvailable = await StoreReview.isAvailableAsync()
+        if (isAvailable) StoreReview.requestReview()
+      } catch {}
+    }
   }
 
   const handleClose = () => {
@@ -974,7 +986,7 @@ export function AppsScreen() {
     <Screen preset="fixed" safeAreaEdges={["top"]} systemBarStyle="dark" contentContainerStyle={$screenContent}>
       {/* Header */}
       <View style={[$header, { paddingHorizontal: spacing.md }]}>
-        <Text style={[$appTitle, { color: colors.text }]}>sami</Text>
+        <Text style={[$appTitle, { color: colors.text }]}>Dashboard</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
             style={[$navIconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}

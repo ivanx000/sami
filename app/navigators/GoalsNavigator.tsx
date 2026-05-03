@@ -4,6 +4,7 @@ import { AppDetailScreen } from "@/screens/GoalDetailScreen"
 import { AppsScreen } from "@/screens/GoalsScreen"
 import { FocusSessionScreen } from "@/screens/FocusSessionScreen"
 import { InsightsScreen } from "@/screens/InsightsScreen"
+import { LegalScreen } from "@/screens/LegalScreen"
 import { ReflectionScreen } from "@/screens/ReflectionScreen"
 import { SettingsScreen } from "@/screens/SettingsScreen"
 import { useAppTheme } from "@/theme/context"
@@ -32,6 +33,7 @@ export function GoalsNavigator() {
       {/* GoalDetail navigates back to the main list after a reflection session */}
       <Stack.Screen name="GoalDetail" component={AppsScreen} />
       <Stack.Screen name="Insights" component={InsightsScreen} />
+      <Stack.Screen name="Legal" component={LegalScreen} />
     </Stack.Navigator>
   )
 }

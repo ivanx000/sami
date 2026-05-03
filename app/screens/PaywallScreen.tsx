@@ -48,7 +48,9 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
     setPurchasing(true)
     const success = await purchasePackage(selectedPackage)
     setPurchasing(false)
-    if (!success) {
+    if (success) {
+      navigation.reset({ index: 0, routes: [{ name: "Main" }] })
+    } else {
       Alert.alert("Purchase failed", "Please try again or restore a previous purchase.")
     }
   }
@@ -57,7 +59,9 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
     setPurchasing(true)
     const success = await restorePurchases()
     setPurchasing(false)
-    if (!success) {
+    if (success) {
+      navigation.reset({ index: 0, routes: [{ name: "Main" }] })
+    } else {
       Alert.alert("No purchases found", "No active subscription was found for this Apple ID.")
     }
   }
