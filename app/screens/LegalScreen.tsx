@@ -7,7 +7,7 @@ import type { MainStackScreenProps } from "@/navigators/navigationTypes"
 
 const PRIVACY_POLICY = `Last updated: May 2, 2026
 
-Sami ("we", "us", or "our") operates the Sami mobile application. This page explains what information we collect, how we use it, and your rights.
+This page explains what information we collect, how we use it, and your rights.
 
 Information We Collect
 
