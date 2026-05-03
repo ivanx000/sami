@@ -2,6 +2,8 @@ import { useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  ImageStyle,
   Linking,
   TouchableOpacity,
   View,
@@ -19,11 +21,9 @@ import { useAppTheme } from "@/theme/context"
 import { PRIVACY_POLICY_URL, TERMS_URL } from "@/config/appConstants"
 
 const FEATURES = [
-  "Unlimited app blocking goals",
-  "Time-based scheduling",
-  "Focus session timer",
-  "Post-session reflections",
-  "Weekly insights & streaks",
+  "Block distracting apps",
+  "Automatic blocking based on schedules",
+  "Weekly graphs & streaks",
 ]
 
 function getPeriodSuffix(pkg: PurchasesPackage): string {
@@ -96,7 +96,8 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
 
         {/* Hero */}
         <View style={$hero}>
-          <Text style={[$heroTitle, { color: colors.text }]}>sami</Text>
+          <Image source={require("../../assets/paywall.png")} style={$heroImage} resizeMode="contain" />
+          <Text style={[$heroTitle, { color: colors.text }]}>Start for Free Today</Text>
           <Text style={[$heroSub, { color: colors.textDim }]}>
             Try free for 7 days, then continue building your focus habits
           </Text>
@@ -233,6 +234,11 @@ const $root: ViewStyle = {
 const $hero: ViewStyle = {
   alignItems: "center",
   gap: 12,
+}
+
+const $heroImage: ImageStyle = {
+  width: 180,
+  height: 180,
 }
 
 const $heroTitle: TextStyle = {
