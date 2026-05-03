@@ -2,8 +2,6 @@ import { useState } from "react"
 import {
   ActivityIndicator,
   Alert,
-  Image,
-  ImageStyle,
   Linking,
   TouchableOpacity,
   View,
@@ -96,7 +94,6 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
 
         {/* Hero */}
         <View style={$hero}>
-          <Image source={require("../../assets/paywall.png")} style={$heroImage} resizeMode="contain" />
           <Text style={[$heroTitle, { color: colors.text }]}>Start for Free Today</Text>
           <Text style={[$heroSub, { color: colors.textDim }]}>
             Try free for 7 days, then continue building your focus habits
@@ -228,17 +225,12 @@ const $centered: ViewStyle = {
 
 const $root: ViewStyle = {
   gap: 20,
-  paddingBottom: 40,
+  paddingBottom: 16,
 }
 
 const $hero: ViewStyle = {
   alignItems: "center",
   gap: 12,
-}
-
-const $heroImage: ImageStyle = {
-  width: 180,
-  height: 180,
 }
 
 const $heroTitle: TextStyle = {

@@ -63,6 +63,15 @@ export function OnboardingScreen({ navigation, route }: AppStackScreenProps<"Onb
     setStep(next)
   }
 
+  const handleMaybeLater = () => {
+    setOnboardingComplete()
+    if (isPremium) {
+      navigation.reset({ index: 0, routes: [{ name: "Main" }] })
+    } else {
+      navigation.navigate("Paywall")
+    }
+  }
+
   const handleNext = async () => {
     if (step < STEPS.length - 1) {
       goToStep(step + 1)
@@ -160,7 +169,7 @@ export function OnboardingScreen({ navigation, route }: AppStackScreenProps<"Onb
 
           <TouchableOpacity
             style={[$skipBtn, { opacity: isLastStep ? 1 : 0 }]}
-            onPress={isLastStep ? setOnboardingComplete : undefined}
+            onPress={isLastStep ? handleMaybeLater : undefined}
             activeOpacity={0.7}
           >
             <Text style={[$skipText, { color: colors.textDim }]}>Maybe later</Text>
