@@ -1,10 +1,13 @@
 import { useState } from "react"
 import {
   Dimensions,
+  Image,
+  ImageSourcePropType,
   TouchableOpacity,
   View,
   ViewStyle,
   TextStyle,
+  ImageStyle,
 } from "react-native"
 import { ChevronLeftIcon } from "react-native-heroicons/outline"
 import Animated, {
@@ -14,8 +17,6 @@ import Animated, {
 } from "react-native-reanimated"
 import * as Notifications from "expo-notifications"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { ViewfinderCircleIcon, LockClosedIcon, ChartBarIcon } from "react-native-heroicons/outline"
-import type { ComponentType } from "react"
 
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
@@ -26,21 +27,23 @@ import { useAppTheme } from "@/theme/context"
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
-type IconComponent = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
-
-const STEPS: { Icon: IconComponent; title: string; body: string }[] = [
+const STEPS: { image: ImageSourcePropType; imageScale: number; imageOffsetY?: number; title: string; body: string }[] = [
   {
-    Icon: ViewfinderCircleIcon,
+    image: require("../../assets/onboarding1.png"),
+    imageScale: 0.85,
     title: "Reclaim your focus",
-    body: "Sami helps you build deep focus habits by blocking distracting apps on your schedule — automatically.",
+    body: "Sami helps you build deep focus habits by blocking distracting apps on your schedule automatically.",
   },
   {
-    Icon: LockClosedIcon,
-    title: "Block what pulls you away",
+    image: require("../../assets/onboarding2.png"),
+    imageScale: 1.05,
+    imageOffsetY: 40,
+    title: "Block your distractions",
     body: "Choose which apps to block and when. Set time-based schedules, group them by habit, and stay in control.",
   },
   {
-    Icon: ChartBarIcon,
+    image: require("../../assets/onboarding3.png"),
+    imageScale: 0.95,
     title: "Watch your focus grow",
     body: "Track focus sessions, log reflections, and see your weekly progress. Small sessions compound into big results.",
   },
@@ -116,7 +119,9 @@ export function OnboardingScreen({ navigation, route }: AppStackScreenProps<"Onb
           <Animated.View style={[$slideTrack, animatedSlider]}>
             {STEPS.map((s, i) => (
               <View key={i} style={[$slide, { width: SCREEN_WIDTH }]}>
-                <s.Icon size={64} color={colors.tint} strokeWidth={1.5} />
+                <View style={$imageContainer}>
+                  <Image source={s.image} style={[$slideImage, { width: SCREEN_WIDTH * s.imageScale, height: SCREEN_WIDTH * s.imageScale, transform: [{ translateY: s.imageOffsetY ?? 0 }] }]} resizeMode="contain" />
+                </View>
                 <Text style={[$title, { color: colors.text }]}>{s.title}</Text>
                 <Text style={[$body, { color: colors.textDim }]}>{s.body}</Text>
               </View>
@@ -207,8 +212,18 @@ const $slide: ViewStyle = {
   alignItems: "center",
   justifyContent: "center",
   paddingHorizontal: 40,
-  gap: 20,
+  paddingBottom: 60,
+  gap: 16,
 }
+
+const $imageContainer: ViewStyle = {
+  width: SCREEN_WIDTH,
+  height: SCREEN_WIDTH * 0.8,
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const $slideImage: ImageStyle = {}
 
 const $title: TextStyle = {
   fontSize: 28,
