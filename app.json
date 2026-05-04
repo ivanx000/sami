@@ -51,6 +51,8 @@
   "plugins": [
     "expo-localization",
     "expo-font",
+    "expo-notifications",
+    "react-native-purchases",
     [
       "expo-splash-screen",
       {

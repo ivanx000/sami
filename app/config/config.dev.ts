@@ -7,7 +7,6 @@
  */
 export default {
   API_URL: "https://api.rss2json.com/v1/",
-  // Add your RevenueCat API key from https://app.revenuecat.com
-  revenueCatApiKey: "test_QYBKMpdkncthGCrUtbPcwaYtUSb",
+  revenueCatApiKey: process.env.REVENUECAT_API_KEY ?? "",
   revenueCatEntitlement: "Pro",
 }
