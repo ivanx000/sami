@@ -20,6 +20,7 @@ export type AppStackParamList = {
   Onboarding: { initialStep?: number } | undefined
   Paywall: undefined
   Main: NavigatorScreenParams<MainStackParamList>
+  Legal: { type: "privacy" | "terms" }
 }
 
 export type AppStackScreenProps<T extends keyof AppStackParamList> = NativeStackScreenProps<

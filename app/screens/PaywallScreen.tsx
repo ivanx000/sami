@@ -2,7 +2,6 @@ import { useState } from "react"
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -16,7 +15,6 @@ import { Text } from "@/components/Text"
 import { usePurchases } from "@/context/PurchasesContext"
 import type { AppStackScreenProps } from "@/navigators/navigationTypes"
 import { useAppTheme } from "@/theme/context"
-import { PRIVACY_POLICY_URL, TERMS_URL } from "@/config/appConstants"
 
 const FEATURES = [
   "Block distracting apps",
@@ -192,11 +190,11 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
             current period.
           </Text>
           <View style={$legalLinks}>
-            <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+            <TouchableOpacity onPress={() => navigation.navigate("Legal", { type: "privacy" })}>
               <Text style={[$legalLink, { color: colors.textDim }]}>Privacy Policy</Text>
             </TouchableOpacity>
             <Text style={[$legalText, { color: colors.textDim }]}> · </Text>
-            <TouchableOpacity onPress={() => Linking.openURL(TERMS_URL)}>
+            <TouchableOpacity onPress={() => navigation.navigate("Legal", { type: "terms" })}>
               <Text style={[$legalLink, { color: colors.textDim }]}>Terms of Service</Text>
             </TouchableOpacity>
           </View>

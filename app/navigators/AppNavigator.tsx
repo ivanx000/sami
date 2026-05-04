@@ -5,6 +5,7 @@ import Config from "@/config"
 import { useAppState } from "@/context/AppStateContext"
 import { usePurchases } from "@/context/PurchasesContext"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
+import { LegalScreen } from "@/screens/LegalScreen"
 import { OnboardingScreen } from "@/screens/OnboardingScreen"
 import { PaywallScreen } from "@/screens/PaywallScreen"
 import { useAppTheme } from "@/theme/context"
@@ -42,6 +43,7 @@ const AppStack = () => {
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Paywall" component={PaywallScreen} />
       <Stack.Screen name="Main" component={MainNavigator} />
+      <Stack.Screen name="Legal" component={LegalScreen} />
     </Stack.Navigator>
   )
 }

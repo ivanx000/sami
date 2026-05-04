@@ -24,7 +24,7 @@ const BaseConfig: ConfigBaseProps = {
    */
   exitRoutes: ["Welcome"],
   revenueCatApiKey: "",
-  revenueCatEntitlement: "premium",
+  revenueCatEntitlement: "Pro",
 }
 
 export default BaseConfig

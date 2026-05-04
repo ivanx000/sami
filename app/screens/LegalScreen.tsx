@@ -35,7 +35,7 @@ We may update this policy from time to time. Continued use of the app after chan
 
 Contact Us
 
-If you have questions about this privacy policy, please contact us at support@sami.app.`
+If you have questions about this privacy policy, please contact us at ivanxie101@gmail.com.`
 
 const TERMS_OF_SERVICE = `Last updated: May 2, 2026
 
@@ -69,7 +69,7 @@ We may update these terms at any time. Continued use of the app after changes co
 
 Contact Us
 
-For questions about these terms, please contact us at support@sami.app.`
+For questions about these terms, please contact us at ivanxie101@gmail.com.`
 
 type Props = MainStackScreenProps<"Legal">
 
