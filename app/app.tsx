@@ -70,7 +70,7 @@ export function App() {
               <GoalProvider>
                 <SessionProvider>
                   <PurchasesProvider>
-                    <ThemeProvider initialContext="light">
+                    <ThemeProvider initialContext="light" /* lock to light — dark mode not implemented */>
                       <AppNavigator
                         linking={{ prefixes: [prefix], config }}
                         initialState={initialNavigationState}

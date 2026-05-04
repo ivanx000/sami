@@ -49,8 +49,11 @@ export const AppBlockProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const markDayActive = useCallback(() => {
     const today = new Date().toISOString().slice(0, 10)
-    if (streakDataRef.current.lastDate === today) return
-    setStreakRaw(JSON.stringify({ count: streakDataRef.current.count + 1, lastDate: today }))
+    const { lastDate, count } = streakDataRef.current
+    if (lastDate === today) return
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+    const nextCount = lastDate === yesterday ? count + 1 : 1
+    setStreakRaw(JSON.stringify({ count: nextCount, lastDate: today }))
   }, [setStreakRaw])
 
   const resetStreak = useCallback(() => {

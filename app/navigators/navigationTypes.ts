@@ -12,8 +12,7 @@ export type MainStackParamList = {
   Legal: { type: "privacy" | "terms" }
   FocusSession: { goalId: string; plannedDuration: number }
   Reflection: { goalId: string }
-  GoalDetail: { goalId: string }
-  Insights: undefined
+Insights: undefined
 }
 
 export type AppStackParamList = {

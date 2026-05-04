@@ -4,7 +4,7 @@
   "scheme": "sami",
   "version": "1.0.0",
   "orientation": "portrait",
-  "userInterfaceStyle": "automatic",
+  "userInterfaceStyle": "light",
   "icon": "./assets/icon.png",
   "updates": {
     "fallbackToCacheTimeout": 0
@@ -16,7 +16,7 @@
   ],
   "android": {
     "icon": "./assets/icon.png",
-    "package": "com.sami",
+    "package": "com.ivanxie.sami",
     "adaptiveIcon": {
       "foregroundImage": "./assets/icon.png",
       "backgroundImage": "./assets/images/app-icon-android-adaptive-background.png"

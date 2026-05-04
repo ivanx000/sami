@@ -6,7 +6,6 @@
  * https://reactnative.dev/docs/security#storing-sensitive-info
  */
 export default {
-  API_URL: "https://api.rss2json.com/v1/",
   revenueCatApiKey: process.env.REVENUECAT_API_KEY ?? "",
   revenueCatEntitlement: "Pro",
 }

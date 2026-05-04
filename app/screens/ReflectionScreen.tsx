@@ -74,7 +74,7 @@ export function ReflectionScreen({ route, navigation }: MainStackScreenProps<"Re
       wasDistracted,
       wasDistracted ? distractionNote.trim() || undefined : undefined,
     )
-    navigation.navigate("GoalDetail", { goalId })
+    navigation.navigate("AppsList")
   }
 
   if (!goal) {

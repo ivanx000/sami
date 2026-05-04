@@ -30,9 +30,7 @@ export function GoalsNavigator() {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="FocusSession" component={FocusSessionScreen} />
       <Stack.Screen name="Reflection" component={ReflectionScreen} />
-      {/* GoalDetail navigates back to the main list after a reflection session */}
-      <Stack.Screen name="GoalDetail" component={AppsScreen} />
-      <Stack.Screen name="Insights" component={InsightsScreen} />
+<Stack.Screen name="Insights" component={InsightsScreen} />
       <Stack.Screen name="Legal" component={LegalScreen} />
     </Stack.Navigator>
   )
