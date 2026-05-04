@@ -34,10 +34,14 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
   const { theme: { colors, spacing } } = useAppTheme()
   const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases()
   const [purchasing, setPurchasing] = useState(false)
-  const [selectedIndex, setSelectedIndex] = useState(0)
 
   const packages = offerings?.current?.availablePackages ?? []
-  const selectedPackage: PurchasesPackage | undefined = packages[selectedIndex]
+  const sortedPackages = [...packages].sort((a, b) => {
+    const order = ["MONTHLY", "ANNUAL", "WEEKLY"]
+    return order.indexOf(a.packageType as string) - order.indexOf(b.packageType as string)
+  })
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectedPackage = sortedPackages.find(p => p.identifier === selectedId) ?? sortedPackages[0]
 
   const handlePurchase = async () => {
     if (!selectedPackage) return
@@ -111,8 +115,8 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
         {/* Package selection */}
         {packages.length > 0 ? (
           <View style={$packages}>
-            {packages.map((pkg: PurchasesPackage, i: number) => {
-              const isSelected = i === selectedIndex
+            {sortedPackages.map((pkg: PurchasesPackage) => {
+              const isSelected = pkg.identifier === selectedPackage?.identifier
               const isAnnual = (pkg.packageType as string) === "ANNUAL"
               const suffix = getPeriodSuffix(pkg)
               return (
@@ -126,13 +130,13 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
                       borderWidth: isSelected ? 1.5 : 1,
                     },
                   ]}
-                  onPress={() => setSelectedIndex(i)}
+                  onPress={() => setSelectedId(pkg.identifier)}
                   activeOpacity={0.8}
                 >
                   <View style={$packageLeft}>
                     <View style={$packageTitleRow}>
                       <Text style={[$packageTitle, { color: colors.text }]}>
-                        {pkg.product.title || pkg.packageType}
+                        {(pkg.packageType as string) === "ANNUAL" ? "Yearly" : (pkg.packageType as string) === "MONTHLY" ? "Monthly" : pkg.packageType}
                       </Text>
                       {isAnnual && (
                         <View style={[$bestValueBadge, { backgroundColor: colors.tint + "25" }]}>
