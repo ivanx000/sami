@@ -30,17 +30,64 @@
     "bundleIdentifier": "com.ivanxie.sami",
     "infoPlist": {
       "LSApplicationQueriesSchemes": [
-        "instagram", "tiktok", "twitter", "fb", "snapchat", "pinterest",
-        "linkedin", "tumblr", "bereal", "barcelona",
-        "youtube", "twitch", "nflx", "hulu", "disneyplus", "primevideo", "max", "videos",
-        "whatsapp", "tg", "discord", "fb-messenger", "sgnl", "slack",
-        "roblox", "minecraft", "clashofclans", "king-candycrushsaga", "chess",
-        "amazon", "ebay", "shein", "etsy",
-        "spotify", "music", "soundcloud",
-        "reddit", "applenews", "flipboard", "medium",
-        "tinder", "bumble", "hinge",
-        "x-web-search", "googlechrome",
-        "doordash", "ubereats"
+        "instagram",
+        "tiktok",
+        "twitter",
+        "fb",
+        "snapchat",
+        "pinterest",
+        "linkedin",
+        "tumblr",
+        "bereal",
+        "barcelona",
+        "youtube",
+        "twitch",
+        "nflx",
+        "hulu",
+        "disneyplus",
+        "primevideo",
+        "max",
+        "videos",
+        "whatsapp",
+        "tg",
+        "discord",
+        "fb-messenger",
+        "sgnl",
+        "slack",
+        "roblox",
+        "minecraft",
+        "clashofclans",
+        "king-candycrushsaga",
+        "chess",
+        "amazon",
+        "ebay",
+        "shein",
+        "etsy",
+        "spotify",
+        "music",
+        "soundcloud",
+        "reddit",
+        "applenews",
+        "flipboard",
+        "medium",
+        "tinder",
+        "bumble",
+        "hinge",
+        "x-web-search",
+        "googlechrome",
+        "doordash",
+        "ubereats"
+      ],
+      "ITSAppUsesNonExemptEncryption": false
+    },
+    "privacyManifests": {
+      "NSPrivacyAccessedAPITypes": [
+        {
+          "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+          "NSPrivacyAccessedAPITypeReasons": [
+            "CA92.1"
+          ]
+        }
       ]
     }
   },
@@ -52,7 +99,6 @@
     "expo-localization",
     "expo-font",
     "expo-notifications",
-    "react-native-purchases",
     [
       "expo-splash-screen",
       {
@@ -79,6 +125,9 @@
   "extra": {
     "ignite": {
       "version": "11.5.0"
+    },
+    "eas": {
+      "projectId": "8058189c-084e-4091-9e06-d32f1040215f"
     }
   }
 }

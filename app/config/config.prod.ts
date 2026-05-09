@@ -6,6 +6,6 @@
  * https://reactnative.dev/docs/security#storing-sensitive-info
  */
 export default {
-  revenueCatApiKey: process.env.REVENUECAT_API_KEY ?? "",
+  revenueCatApiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ?? "",
   revenueCatEntitlement: "Pro",
 }
