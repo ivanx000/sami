@@ -1,6 +1,5 @@
-import { useRef, useState } from "react"
+import { useState } from "react"
 import {
-  Animated,
   Dimensions,
   Image,
   ImageSourcePropType,
@@ -10,6 +9,7 @@ import {
   TextStyle,
   ImageStyle,
 } from "react-native"
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated"
 import { ChevronLeftIcon } from "react-native-heroicons/outline"
 import * as Notifications from "expo-notifications"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
@@ -52,14 +52,10 @@ export function OnboardingScreen({ navigation, route }: AppStackScreenProps<"Onb
   const insets = useSafeAreaInsets()
   const [step, setStep] = useState(route.params?.initialStep ?? 0)
   const [requestingPermission, setRequestingPermission] = useState(false)
-  const translateX = useRef(new Animated.Value(0)).current
+  const translateX = useSharedValue(0)
 
   const goToStep = (next: number) => {
-    Animated.timing(translateX, {
-      toValue: -next * SCREEN_WIDTH,
-      duration: 320,
-      useNativeDriver: true,
-    }).start()
+    translateX.value = withTiming(-next * SCREEN_WIDTH, { duration: 320 })
     setStep(next)
   }
 
@@ -101,7 +97,9 @@ export function OnboardingScreen({ navigation, route }: AppStackScreenProps<"Onb
     }
   }
 
-  const animatedSlider = { transform: [{ translateX }] }
+  const animatedSlider = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }))
 
   const isLastStep = step === STEPS.length - 1
 
