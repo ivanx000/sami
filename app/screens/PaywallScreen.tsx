@@ -32,7 +32,14 @@ function getPeriodSuffix(pkg: PurchasesPackage): string {
 
 export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
   const { theme: { colors, spacing } } = useAppTheme()
-  const { offerings, purchasePackage, restorePurchases, isLoading } = usePurchases()
+  const {
+    offerings,
+    offeringsError,
+    refetchOfferings,
+    purchasePackage,
+    restorePurchases,
+    isLoading,
+  } = usePurchases()
   const [purchasing, setPurchasing] = useState(false)
 
   const packages = offerings?.current?.availablePackages ?? []
@@ -160,10 +167,15 @@ export function PaywallScreen({ navigation }: AppStackScreenProps<"Paywall">) {
             })}
           </View>
         ) : (
-          <View style={[$packageRow, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+          <View style={[$packageRow, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, flexDirection: "column", alignItems: "stretch", gap: 8 }]}>
             <Text style={[$featureText, { color: colors.textDim }]}>
-              No offerings available. Check back soon.
+              {offeringsError ?? "No offerings available. Check back soon."}
             </Text>
+            {__DEV__ && (
+              <TouchableOpacity onPress={refetchOfferings} style={{ alignSelf: "flex-start" }}>
+                <Text style={[$restoreText, { color: colors.tint }]}>Retry</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
