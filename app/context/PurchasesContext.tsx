@@ -66,9 +66,23 @@ export const PurchasesProvider: FC<PropsWithChildren> = ({ children }) => {
         currentOfferings.current?.availablePackages.map((p) => p.identifier) ?? [],
       )
     } catch (e: any) {
-      const msg = e?.message ?? String(e)
+      const msg: string = e?.message ?? String(e)
       console.warn("[RC] init error:", msg, e)
-      setOfferingsError(`RevenueCat error: ${msg}`)
+      // RevenueCat returns OfferingsManager.Error 1 / "None of the products … could be fetched"
+      // when StoreKit can't see the products. The two real causes on iOS:
+      //   1. Products are in READY_TO_SUBMIT (not yet approved by Apple) — only resolves
+      //      in Sandbox StoreKit (TestFlight, or device signed into a Sandbox Apple ID).
+      //   2. No internet, wrong bundle ID, or signed paid-apps agreement is missing.
+      if (msg.includes("could be fetched") || msg.includes("OfferingsManager")) {
+        setOfferingsError(
+          "App Store can't see your products. Most likely the subscriptions are still in " +
+            "'Ready to Submit' in App Store Connect. To test before the first App Review approval, " +
+            "install via TestFlight, OR on this device sign into a Sandbox Apple ID " +
+            "(Settings → App Store → Sandbox Account) and relaunch the app.",
+        )
+      } else {
+        setOfferingsError(`RevenueCat error: ${msg}`)
+      }
     }
   }, [])
 
@@ -95,7 +109,15 @@ export const PurchasesProvider: FC<PropsWithChildren> = ({ children }) => {
     }
 
     try {
-      Purchases.configure({ apiKey })
+      // Guard against Fast Refresh re-running this effect, which produces the
+      // "Purchases instance already set" warning otherwise.
+      const isConfigured =
+        typeof (Purchases as any).isConfigured === "function"
+          ? (Purchases as any).isConfigured()
+          : false
+      if (!isConfigured) {
+        Purchases.configure({ apiKey })
+      }
     } catch (e: any) {
       console.warn("[RC] configure threw:", e)
       setOfferingsError(`Purchases.configure failed: ${e?.message ?? String(e)}`)
